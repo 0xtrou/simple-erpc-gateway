@@ -10,7 +10,7 @@
   "author": "0xtrou <khangtran.btc@gmail.com>",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/server.js",
+    "start": "node dist/src/server.js",
     "dev": "ts-node src/server.ts",
     "dev:watch": "nodemon --exec ts-node src/server.ts",
     "pm2:start": "npm run build && pm2 start ecosystem.config.js",

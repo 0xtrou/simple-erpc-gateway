@@ -28,7 +28,8 @@ const server = fastify({ logger: true });
 // Load configuration
 function loadConfig(): void {
   try {
-    const configPath = path.join(__dirname, '../config.json');
+    // Look for config.json in project root (two levels up from dist/src/server.js)
+    const configPath = path.join(__dirname, '../../config.json');
     config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     console.log('✅ Configuration loaded successfully');
     initializeServices();
