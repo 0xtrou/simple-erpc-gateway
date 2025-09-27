@@ -5,9 +5,9 @@
   "main": "dist/server.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/trou/simple-erpc-gateway.git"
+    "url": "https://github.com/0xtrou/simple-erpc-gateway.git"
   },
-  "author": "trou <khangtran.btc@gmail.com>",
+  "author": "0xtrou <khangtran.btc@gmail.com>",
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
