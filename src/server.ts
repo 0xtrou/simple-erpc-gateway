@@ -9,6 +9,7 @@ import { DefaultRoutingStrategy } from './strategy/RoutingStrategy';
 import { UpstreamService } from './services/UpstreamService';
 import { BlockNumberExtractor } from './services/BlockNumberExtractor';
 import { NodeStatusService } from './services/NodeStatusService';
+import { validateJsonRpcRequestOrBatch, createJsonRpcError, JSON_RPC_ERRORS } from './validation';
 
 // Import routing operations
 import { PriorityRoutingOps } from './operations/PriorityRoutingOps';
@@ -86,18 +87,64 @@ function initializeServices(): void {
   console.log(`✅ All projects initialized. Default project: ${config.defaultProject}`);
 }
 
+// Execute a single project request and return the response
+async function executeProjectRequest(
+  projectService: any,
+  singleRequest: JsonRpcRequest,
+  originalRequest: any
+): Promise<any> {
+  return new Promise(async (resolve) => {
+    // Create a mock reply object that captures the response
+    const mockReply = {
+      _response: null as any,
+      _statusCode: 200,
+
+      send: function(response: any) {
+        this._response = response;
+        resolve(response);
+        return this;
+      },
+
+      code: function(statusCode: number) {
+        this._statusCode = statusCode;
+        return this;
+      }
+    };
+
+    try {
+      // Execute the routing strategy with the mock reply
+      await projectService.strategy.execute(singleRequest, mockReply as any, originalRequest);
+
+      // If no response was sent, something went wrong
+      if (!mockReply._response) {
+        resolve(createJsonRpcError(
+          JSON_RPC_ERRORS.INTERNAL_ERROR,
+          'No response from routing strategy',
+          singleRequest.id || null
+        ));
+      }
+    } catch (error) {
+      resolve(createJsonRpcError(
+        JSON_RPC_ERRORS.INTERNAL_ERROR,
+        'Internal error',
+        singleRequest.id || null
+      ));
+    }
+  });
+}
+
 // Project-specific request handler factory
 function createProjectHandler(projectId: string) {
   return async function handleProjectRequest(request: any, reply: any): Promise<void> {
-    const requestBody: JsonRpcRequest = request.body;
+    const requestBody = request.body;
     const projectService = projectServices.get(projectId);
 
     if (!projectService) {
-      return reply.code(500).send({
-        jsonrpc: '2.0',
-        error: { code: -32603, message: `Project ${projectId} not initialized` },
-        id: requestBody?.id || null
-      });
+      return reply.code(500).send(createJsonRpcError(
+        JSON_RPC_ERRORS.INTERNAL_ERROR,
+        `Project ${projectId} not initialized`,
+        null
+      ));
     }
 
     try {
@@ -108,34 +155,64 @@ function createProjectHandler(projectId: string) {
         console.log(`🔍 DEBUG [${projectId}]: Query params:`, request.query);
       }
 
-      // Validate JSON-RPC request
-      if (!requestBody || !requestBody.method) {
-        const errorMsg = !requestBody ? 'Request body is empty or invalid' : 'Missing required field: method';
+      // Validate request using Zod schemas
+      const validationResult = validateJsonRpcRequestOrBatch(requestBody);
+
+      if (!validationResult.success) {
         if (config.logging.debug) {
-          console.log(`❌ DEBUG [${projectId}]: Validation failed - ${errorMsg}`);
+          console.log(`❌ DEBUG [${projectId}]: Validation failed:`, validationResult.error);
         }
-        return reply.code(400).send({
-          jsonrpc: '2.0',
-          error: { code: -32600, message: 'Invalid Request', details: errorMsg },
-          id: requestBody?.id || null
-        });
+        return reply.code(400).send(validationResult.error);
       }
 
-      console.log(`🔄 Processing ${requestBody.method} request for project ${projectId}${request.query?.debug === '1' ? ' (DEBUG MODE)' : ''}`);
+      const { data: validatedData, isBatch } = validationResult;
 
-      // Execute routing strategy with request object for debug support
-      await projectService.strategy.execute(requestBody, reply, request);
+      if (isBatch) {
+        // Handle JSON-RPC batch request
+        const batchData = validatedData as JsonRpcRequest[];
+        console.log(`🔄 Processing batch request with ${batchData.length} requests for project ${projectId}${request.query?.debug === '1' ? ' (DEBUG MODE)' : ''}`);
+
+        // Process each request in the batch
+        const batchResponses = [];
+
+        for (const singleRequest of batchData) {
+          try {
+            // Execute each request and capture its response
+            const response = await executeProjectRequest(projectService, singleRequest, request);
+            batchResponses.push(response);
+          } catch (error) {
+            if (config.logging.debug) {
+              console.log(`🔍 DEBUG [${projectId}]: Batch request ${singleRequest.id} failed:`, error);
+            }
+            batchResponses.push(createJsonRpcError(
+              JSON_RPC_ERRORS.INTERNAL_ERROR,
+              'Internal error',
+              singleRequest.id || null
+            ));
+          }
+        }
+
+        return reply.send(batchResponses);
+      } else {
+        // Handle single JSON-RPC request
+        const singleRequest = validatedData as JsonRpcRequest;
+
+        console.log(`🔄 Processing ${singleRequest.method} request for project ${projectId}${request.query?.debug === '1' ? ' (DEBUG MODE)' : ''}`);
+
+        // Execute routing strategy with request object for debug support
+        await projectService.strategy.execute(singleRequest, reply, request);
+      }
 
     } catch (error) {
       console.error(`💥 Request handling error for project ${projectId}:`, error);
       if (config.logging.debug) {
         console.log(`🔍 DEBUG [${projectId}]: Full error stack:`, (error as Error).stack);
       }
-      return reply.code(500).send({
-        jsonrpc: '2.0',
-        error: { code: -32603, message: 'Internal error' },
-        id: requestBody?.id || null
-      });
+      return reply.code(500).send(createJsonRpcError(
+        JSON_RPC_ERRORS.INTERNAL_ERROR,
+        'Internal error',
+        null
+      ));
     }
   };
 }
@@ -206,7 +283,7 @@ function registerProjectEndpoints(): void {
     });
 
     // Register project-specific health endpoint
-    server.get(`/${projectId}/health`, async (request) => {
+    server.get(`/${projectId}/health`, async () => {
       const status = {
         project: projectId,
         upstreams: services.upstreamService.getHealthStatus(),
@@ -217,7 +294,7 @@ function registerProjectEndpoints(): void {
     });
 
     // Register project-specific metrics endpoint
-    server.get(`/${projectId}/metrics`, async (request) => {
+    server.get(`/${projectId}/metrics`, async () => {
       const projectConfig = config.projects.find(p => p.id === projectId)!;
       const metrics = {
         project: projectId,

@@ -22,7 +22,8 @@
   },
   "dependencies": {
     "fastify": "^4.24.3",
-    "node-fetch": "^2.7.0"
+    "node-fetch": "^2.7.0",
+    "zod": "^4.1.11"
   },
   "devDependencies": {
     "@types/node": "^20.19.17",
