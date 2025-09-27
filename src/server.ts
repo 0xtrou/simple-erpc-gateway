@@ -183,8 +183,11 @@ function registerProjectEndpoints(): void {
   for (const [projectId, services] of projectServices) {
     const projectHandler = createProjectHandler(projectId);
 
-    // Register main project endpoint
+    // Register main project endpoint (both with and without trailing slash)
     server.post(`/${projectId}`, {
+      handler: projectHandler
+    });
+    server.post(`/${projectId}/`, {
       handler: projectHandler
     });
 
@@ -217,7 +220,7 @@ function registerProjectEndpoints(): void {
     });
 
     console.log(`📍 Registered endpoints for project ${projectId}:`);
-    console.log(`   POST /${projectId} - RPC requests`);
+    console.log(`   POST /${projectId}[/] - RPC requests`);
     console.log(`   GET  /${projectId}/health - Health check`);
     console.log(`   GET  /${projectId}/metrics - Metrics`);
   }
