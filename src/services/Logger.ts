@@ -23,7 +23,8 @@ export class Logger {
         enableColors: true,
         logRequests: true,
         logUpstreamHealth: true,
-        logRoutingDecisions: true
+        logRoutingDecisions: true,
+        debug: false
       });
     }
     return Logger.instance;

@@ -101,11 +101,22 @@ function createProjectHandler(projectId: string) {
     }
 
     try {
+      // Enhanced debugging for request validation
+      if (config.logging.debug) {
+        console.log(`🔍 DEBUG [${projectId}]: Received request body:`, JSON.stringify(requestBody, null, 2));
+        console.log(`🔍 DEBUG [${projectId}]: Request headers:`, request.headers);
+        console.log(`🔍 DEBUG [${projectId}]: Query params:`, request.query);
+      }
+
       // Validate JSON-RPC request
       if (!requestBody || !requestBody.method) {
+        const errorMsg = !requestBody ? 'Request body is empty or invalid' : 'Missing required field: method';
+        if (config.logging.debug) {
+          console.log(`❌ DEBUG [${projectId}]: Validation failed - ${errorMsg}`);
+        }
         return reply.code(400).send({
           jsonrpc: '2.0',
-          error: { code: -32600, message: 'Invalid Request' },
+          error: { code: -32600, message: 'Invalid Request', details: errorMsg },
           id: requestBody?.id || null
         });
       }
@@ -117,6 +128,9 @@ function createProjectHandler(projectId: string) {
 
     } catch (error) {
       console.error(`💥 Request handling error for project ${projectId}:`, error);
+      if (config.logging.debug) {
+        console.log(`🔍 DEBUG [${projectId}]: Full error stack:`, (error as Error).stack);
+      }
       return reply.code(500).send({
         jsonrpc: '2.0',
         error: { code: -32603, message: 'Internal error' },

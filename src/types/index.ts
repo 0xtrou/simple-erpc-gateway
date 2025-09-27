@@ -35,6 +35,7 @@ export interface LoggingConfig {
   logRequests: boolean;
   logUpstreamHealth: boolean;
   logRoutingDecisions: boolean;
+  debug: boolean;
 }
 
 export interface ProjectConfig {
