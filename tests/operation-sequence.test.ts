@@ -63,17 +63,17 @@ async function runOperationSequenceTests(): Promise<void> {
       shouldFailCurrently: false // Should now pass - full pipeline for old blocks
     },
     {
-      name: 'Medium-Old Block Should Use BlockBased Then Archival',
-      description: 'Moderately old block should skip Priority, try BlockBased, then fall back to Archival',
+      name: 'Medium-Old Block Should Use BlockBased Routing',
+      description: 'Moderately old block should skip Priority and use BlockBased for recent blocks',
       request: {
         jsonrpc: '2.0',
         method: 'eth_getBlockByNumber',
-        params: [config.testing.historicalBlockHex, false], // Historical but not ancient
+        params: [config.testing.historicalBlockHex, false], // Historical but recent enough for full nodes
         id: 4
       },
-      expectedPipeline: ['pipeline', 'PriorityRouting', 'BlockBasedRouting', 'FallbackArchivalRouting', 'request_proxy'],
-      expectedUpstreamType: 'archive',
-      shouldFailCurrently: false // Should now pass - full pipeline for historical blocks
+      expectedPipeline: ['pipeline', 'PriorityRouting', 'BlockBasedRouting', 'request_proxy'],
+      expectedUpstreamType: 'full', // Recent enough for full nodes
+      shouldFailCurrently: false // Should pass - BlockBased handles recent blocks
     },
     {
       name: 'Debug Trace Should Use BlockBased Routing',

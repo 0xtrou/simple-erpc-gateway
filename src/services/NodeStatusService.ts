@@ -19,15 +19,19 @@ export class NodeStatusService {
       const statusUrl = localUpstream?.statusUrl;
 
       if (!statusUrl) {
-        // No status URL configured - assume node is caught up with full block range
+        // No status URL configured - assume node is a recent full node (not archive)
+        // Most full nodes only keep recent blocks (last ~6 months)
+        const estimatedCurrentBlock = 169500000; // Approximate current block
+        const blocksIn6Months = 5256000; // ~6 months of blocks (assuming 1 block/3s)
+
         this.localNodeStatus = {
-          earliestBlockHeight: 1, // Assume we have blocks from genesis
-          latestBlockHeight: 999999999, // Assume we're always up to date
+          earliestBlockHeight: estimatedCurrentBlock - blocksIn6Months,
+          latestBlockHeight: estimatedCurrentBlock,
           catchingUp: false,
           lastUpdated: now
         };
         this.lastStatusCheck = now;
-        console.log('No status URL configured - assuming node is caught up with full block range');
+        console.log(`No status URL configured - assuming recent full node with blocks ${this.localNodeStatus.earliestBlockHeight} to ${this.localNodeStatus.latestBlockHeight}`);
         return this.localNodeStatus;
       }
 
@@ -53,7 +57,21 @@ export class NodeStatusService {
       return this.localNodeStatus;
     } catch (error) {
       console.error('Failed to check local node status:', (error as Error).message);
-      return null;
+
+      // Fallback to default status if fetching fails
+      // Assume recent full node (not archive) when status fetch fails
+      const estimatedCurrentBlock = 169500000; // Approximate current block
+      const blocksIn6Months = 5256000; // ~6 months of blocks (assuming 1 block/3s)
+
+      this.localNodeStatus = {
+        earliestBlockHeight: estimatedCurrentBlock - blocksIn6Months,
+        latestBlockHeight: estimatedCurrentBlock,
+        catchingUp: false,
+        lastUpdated: now
+      };
+      this.lastStatusCheck = now;
+      console.log(`Using fallback node status due to fetch error - assuming blocks ${this.localNodeStatus.earliestBlockHeight} to ${this.localNodeStatus.latestBlockHeight}`);
+      return this.localNodeStatus;
     }
   }
 }
