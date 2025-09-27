@@ -1,0 +1,13 @@
+# Single Item Batch Request
+# This demonstrates a batch request with just one item
+
+curl -X POST http://localhost:1099/indexing/ \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "jsonrpc": "2.0",
+      "method": "eth_getBalance",
+      "params": ["0x0000000000000000000000000000000000000000", "latest"],
+      "id": 1
+    }
+  ]'

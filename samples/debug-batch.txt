@@ -1,0 +1,38 @@
+# Batch Request with Debug Mode
+# This demonstrates batch requests with debug=1 for full instrumentation
+
+curl -X POST "http://localhost:1099/indexing/?debug=1" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "jsonrpc": "2.0",
+      "method": "eth_getBalance",
+      "params": ["0x0000000000000000000000000000000000000000", "latest"],
+      "id": 1
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "eth_getBlockByNumber",
+      "params": ["latest", false],
+      "id": 2
+    }
+  ]'
+
+# Expected response will include debug information for each request:
+# [
+#   {
+#     "jsonrpc": "2.0",
+#     "id": 1,
+#     "result": "0x...",
+#     "debug": {
+#       "requestId": "req_...",
+#       "totalDuration": 123,
+#       "strategy": {
+#         "pipeline": ["pipeline", "PriorityRouting", "request_proxy"],
+#         "events": [...]
+#       },
+#       "context": {...}
+#     }
+#   },
+#   ...
+# ]

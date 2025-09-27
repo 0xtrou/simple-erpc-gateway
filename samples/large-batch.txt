@@ -1,0 +1,67 @@
+# Large Batch Request
+# This demonstrates a batch request with many items (10 balance checks)
+
+curl -X POST http://localhost:1099/indexing/ \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "jsonrpc": "2.0",
+      "method": "eth_getBalance",
+      "params": ["0x0000000000000000000000000000000000000000", "latest"],
+      "id": 1
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "eth_getBalance",
+      "params": ["0x0000000000000000000000000000000000000001", "latest"],
+      "id": 2
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "eth_getBalance",
+      "params": ["0x0000000000000000000000000000000000000002", "latest"],
+      "id": 3
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "eth_getBalance",
+      "params": ["0x0000000000000000000000000000000000000003", "latest"],
+      "id": 4
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "eth_getBalance",
+      "params": ["0x0000000000000000000000000000000000000004", "latest"],
+      "id": 5
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "eth_getBalance",
+      "params": ["0x0000000000000000000000000000000000000005", "latest"],
+      "id": 6
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "eth_getBalance",
+      "params": ["0x0000000000000000000000000000000000000006", "latest"],
+      "id": 7
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "eth_getBalance",
+      "params": ["0x0000000000000000000000000000000000000007", "latest"],
+      "id": 8
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "eth_getBalance",
+      "params": ["0x0000000000000000000000000000000000000008", "latest"],
+      "id": 9
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "eth_getBalance",
+      "params": ["0x0000000000000000000000000000000000000009", "latest"],
+      "id": 10
+    }
+  ]'

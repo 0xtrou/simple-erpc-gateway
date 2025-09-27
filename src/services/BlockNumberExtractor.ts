@@ -1,13 +1,13 @@
-import { ProjectConfig } from '../types';
+import { ProjectConfig, AppConfig } from '../types';
 
 export class BlockNumberExtractor {
-  constructor(private config: ProjectConfig) {}
+  constructor(private config: ProjectConfig, private appConfig: AppConfig) {}
 
   extract(method: string, params?: any[]): number | 'latest' | null {
     if (!params || !Array.isArray(params)) return null;
 
     // Check if this method has block number parameters
-    if (!this.config.historicalMethods.includes(method)) return null;
+    if (!this.appConfig.historicalMethods.includes(method)) return null;
 
     const blockNumberMethods: Record<string, number> = {
       'eth_getBlockByNumber': 0,

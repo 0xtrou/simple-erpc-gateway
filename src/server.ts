@@ -58,11 +58,14 @@ function initializeServices(): void {
 
     // Create services for this project
     const upstreamService = new UpstreamService(project);
-    const blockExtractor = new BlockNumberExtractor(project);
-    const nodeStatusService = new NodeStatusService(project);
+    const blockExtractor = new BlockNumberExtractor(project, config);
+    const nodeStatusService = new NodeStatusService(project, config);
+
+    // Wire up the NodeStatusService with UpstreamService for health tracking
+    nodeStatusService.setUpstreamService(upstreamService);
 
     // Create strategy
-    const strategy = new DefaultRoutingStrategy(upstreamService, blockExtractor, nodeStatusService);
+    const strategy = new DefaultRoutingStrategy(upstreamService, blockExtractor, nodeStatusService, config);
 
     // Register pipeline operations in order
     const operations = [
@@ -262,7 +265,7 @@ server.get('/metrics', async (request) => {
       errorRateThreshold: projectConfig.errorRateThreshold,
       blockHeightBuffer: projectConfig.blockHeightBuffer,
       responseTimeout: projectConfig.responseTimeout,
-      historicalMethods: projectConfig.historicalMethods.length
+      historicalMethods: config.historicalMethods.length
     }
   };
 
@@ -304,7 +307,7 @@ function registerProjectEndpoints(): void {
           errorRateThreshold: projectConfig.errorRateThreshold,
           blockHeightBuffer: projectConfig.blockHeightBuffer,
           responseTimeout: projectConfig.responseTimeout,
-          historicalMethods: projectConfig.historicalMethods.length
+          historicalMethods: config.historicalMethods.length
         }
       };
       return metrics;

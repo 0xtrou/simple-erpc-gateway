@@ -1,11 +1,18 @@
 import fetch from 'node-fetch';
-import { LocalNodeStatus, ProjectConfig } from '../types';
+import { LocalNodeStatus, ProjectConfig, AppConfig } from '../types';
+import { UpstreamService } from './UpstreamService';
 
 export class NodeStatusService {
   private localNodeStatus: LocalNodeStatus | null = null;
   private lastStatusCheck = 0;
+  private upstreamService: UpstreamService | null = null;
 
-  constructor(private config: ProjectConfig) {}
+  constructor(private config: ProjectConfig, private appConfig: AppConfig) {}
+
+  // Set the upstream service reference for health tracking
+  setUpstreamService(upstreamService: UpstreamService) {
+    this.upstreamService = upstreamService;
+  }
 
   async getStatus(): Promise<LocalNodeStatus | null> {
     const now = Date.now();
@@ -20,57 +27,96 @@ export class NodeStatusService {
 
       if (!statusUrl) {
         // No status URL configured - assume node is a recent full node (not archive)
-        // Most full nodes only keep recent blocks (last ~6 months)
-        const estimatedCurrentBlock = 169500000; // Approximate current block
-        const blocksIn6Months = 5256000; // ~6 months of blocks (assuming 1 block/3s)
+        // Most full nodes only keep recent blocks based on configuration
+        const estimatedCurrentBlock = this.appConfig.blockchain.estimatedCurrentBlock;
+        const secondsInMonth = 30 * 24 * 60 * 60; // 30 days per month
+        const blocksInRetentionPeriod = Math.floor(
+          (this.appConfig.blockchain.fullNodeRetentionMonths * secondsInMonth) /
+          this.appConfig.blockchain.blockTimeSeconds
+        );
 
         this.localNodeStatus = {
-          earliestBlockHeight: estimatedCurrentBlock - blocksIn6Months,
+          earliestBlockHeight: estimatedCurrentBlock - blocksInRetentionPeriod,
           latestBlockHeight: estimatedCurrentBlock,
           catchingUp: false,
           lastUpdated: now
         };
         this.lastStatusCheck = now;
-        console.log(`No status URL configured - assuming recent full node with blocks ${this.localNodeStatus.earliestBlockHeight} to ${this.localNodeStatus.latestBlockHeight}`);
+        console.log(`No status URL configured - assuming recent full node with blocks ${this.localNodeStatus.earliestBlockHeight} to ${this.localNodeStatus.latestBlockHeight} (${this.appConfig.blockchain.fullNodeRetentionMonths} month retention)`);
         return this.localNodeStatus;
       }
 
-      const response = await fetch(statusUrl, {
-        timeout: this.config.health.nodeStatusTimeoutMs
-      } as any);
+      const timeoutMs = Math.min(this.config.health.nodeStatusTimeoutMs, this.appConfig.timeouts.maxErrorTimeoutMs);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-      if (!response.ok) {
-        throw new Error(`Status check failed: ${response.status}`);
+      try {
+        const response = await fetch(statusUrl, {
+          signal: controller.signal,
+          timeout: timeoutMs
+        } as any);
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`Status check failed: ${response.status}`);
+        }
+
+        const data = await response.json() as any;
+        this.localNodeStatus = {
+          earliestBlockHeight: parseInt(data.result.sync_info.earliest_block_height),
+          latestBlockHeight: parseInt(data.result.sync_info.latest_block_height),
+          catchingUp: data.result.sync_info.catching_up,
+          lastUpdated: now
+        };
+
+        this.lastStatusCheck = now;
+        console.log(`Local node status: earliest=${this.localNodeStatus.earliestBlockHeight}, latest=${this.localNodeStatus.latestBlockHeight}, catching_up=${this.localNodeStatus.catchingUp}`);
+
+        // Mark the local upstream as healthy since status check succeeded
+        if (this.upstreamService && localUpstream) {
+          this.upstreamService.recordRequestResult(localUpstream.id, true);
+        }
+
+        return this.localNodeStatus;
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+
+        // Mark the local upstream as unhealthy on timeout/error
+        if (this.upstreamService && localUpstream) {
+          this.upstreamService.recordRequestResult(localUpstream.id, false);
+
+          // Special handling for timeout/abort errors
+          if (fetchError instanceof Error &&
+              (fetchError.name === 'AbortError' ||
+               fetchError.message.includes('timeout') ||
+               fetchError.message.includes('ECONNREFUSED'))) {
+            console.warn(`Local node status check timeout/connection failed for ${localUpstream.id} after ${timeoutMs}ms - marked as unhealthy`);
+          }
+        }
+
+        throw fetchError;
       }
-
-      const data = await response.json() as any;
-      this.localNodeStatus = {
-        earliestBlockHeight: parseInt(data.result.sync_info.earliest_block_height),
-        latestBlockHeight: parseInt(data.result.sync_info.latest_block_height),
-        catchingUp: data.result.sync_info.catching_up,
-        lastUpdated: now
-      };
-
-      this.lastStatusCheck = now;
-      console.log(`Local node status: earliest=${this.localNodeStatus.earliestBlockHeight}, latest=${this.localNodeStatus.latestBlockHeight}, catching_up=${this.localNodeStatus.catchingUp}`);
-
-      return this.localNodeStatus;
     } catch (error) {
       console.error('Failed to check local node status:', (error as Error).message);
 
       // Fallback to default status if fetching fails
       // Assume recent full node (not archive) when status fetch fails
-      const estimatedCurrentBlock = 169500000; // Approximate current block
-      const blocksIn6Months = 5256000; // ~6 months of blocks (assuming 1 block/3s)
+      const estimatedCurrentBlock = this.appConfig.blockchain.estimatedCurrentBlock;
+      const secondsInMonth = 30 * 24 * 60 * 60; // 30 days per month
+      const blocksInRetentionPeriod = Math.floor(
+        (this.appConfig.blockchain.fullNodeRetentionMonths * secondsInMonth) /
+        this.appConfig.blockchain.blockTimeSeconds
+      );
 
       this.localNodeStatus = {
-        earliestBlockHeight: estimatedCurrentBlock - blocksIn6Months,
+        earliestBlockHeight: estimatedCurrentBlock - blocksInRetentionPeriod,
         latestBlockHeight: estimatedCurrentBlock,
         catchingUp: false,
         lastUpdated: now
       };
       this.lastStatusCheck = now;
-      console.log(`Using fallback node status due to fetch error - assuming blocks ${this.localNodeStatus.earliestBlockHeight} to ${this.localNodeStatus.latestBlockHeight}`);
+      console.log(`Using fallback node status due to fetch error - assuming blocks ${this.localNodeStatus.earliestBlockHeight} to ${this.localNodeStatus.latestBlockHeight} (${this.appConfig.blockchain.fullNodeRetentionMonths} month retention)`);
       return this.localNodeStatus;
     }
   }

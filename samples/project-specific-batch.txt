@@ -1,0 +1,68 @@
+# Project-Specific Batch Requests
+# These demonstrate batch requests on different project endpoints
+
+# 1. Gateway project batch request
+echo "=== Gateway Project Batch ==="
+curl -X POST http://localhost:1099/gateway/ \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "jsonrpc": "2.0",
+      "method": "eth_getBalance",
+      "params": ["0x0000000000000000000000000000000000000000", "latest"],
+      "id": 1
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "eth_getBlockByNumber",
+      "params": ["latest", false],
+      "id": 2
+    }
+  ]'
+
+echo -e "\n\n=== Indexing Project Batch ==="
+# 2. Indexing project batch request
+curl -X POST http://localhost:1099/indexing/ \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "jsonrpc": "2.0",
+      "method": "eth_getBalance",
+      "params": ["0x0000000000000000000000000000000000000000", "latest"],
+      "id": 1
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "eth_getBlockByNumber",
+      "params": ["latest", false],
+      "id": 2
+    }
+  ]'
+
+echo -e "\n\n=== Default Project Batch (root endpoint) ==="
+# 3. Default project batch request (gateway via root)
+curl -X POST http://localhost:1099/ \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "jsonrpc": "2.0",
+      "method": "eth_getBalance",
+      "params": ["0x0000000000000000000000000000000000000000", "latest"],
+      "id": 1
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "eth_getBlockByNumber",
+      "params": ["latest", false],
+      "id": 2
+    }
+  ]'
+
+# Note: Each project has different upstream configurations:
+# - Gateway: 6 upstreams (primary, backup, archive nodes)
+# - Indexing: 2 upstreams (optimized for high-performance indexing)
+#
+# The routing strategy will select different upstreams based on:
+# - Request type (balance vs block data)
+# - Block age (recent vs historical)
+# - Upstream health and priority

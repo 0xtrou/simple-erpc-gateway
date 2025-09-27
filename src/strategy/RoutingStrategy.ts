@@ -1,5 +1,5 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { RoutingOperation, RoutingContext, JsonRpcRequest, RoutingStrategy, DebugResponse } from '../types';
+import { RoutingOperation, RoutingContext, JsonRpcRequest, RoutingStrategy, DebugResponse, AppConfig } from '../types';
 import { UpstreamService } from '../services/UpstreamService';
 import { BlockNumberExtractor } from '../services/BlockNumberExtractor';
 import { NodeStatusService } from '../services/NodeStatusService';
@@ -12,7 +12,8 @@ export class DefaultRoutingStrategy implements RoutingStrategy {
   constructor(
     private upstreamService: UpstreamService,
     private blockExtractor: BlockNumberExtractor,
-    private nodeStatusService: NodeStatusService
+    private nodeStatusService: NodeStatusService,
+    private appConfig: AppConfig
   ) {}
 
   registerPipe(operations: RoutingOperation[]): void {
@@ -40,6 +41,7 @@ export class DefaultRoutingStrategy implements RoutingStrategy {
       availableUpstreams,
       upstreamHealth,
       config: this.upstreamService['config'],
+      appConfig: this.appConfig,
     };
 
     // Execute operations in pipeline until one returns an upstream
@@ -51,7 +53,10 @@ export class DefaultRoutingStrategy implements RoutingStrategy {
         this.instrumentation.logOperationResult(requestId, operation.name, result, operationStartTime);
 
         if (result.upstream) {
-          console.log(`✅ ${operation.name}: ${result.reason}`);
+          // Only log routing decisions in debug mode
+          if (isDebugEnabled) {
+            console.log(`✅ ${operation.name}: ${result.reason}`);
+          }
           context.selectedUpstream = result.upstream;
 
           // Execute request and return response
@@ -72,17 +77,23 @@ export class DefaultRoutingStrategy implements RoutingStrategy {
             return reply.send(response.data);
           } else {
             // Continue to next operation if this upstream failed
-            console.warn(`❌ ${operation.name}: Request failed - ${response.error}`);
+            if (isDebugEnabled) {
+              console.warn(`❌ ${operation.name}: Request failed - ${response.error}`);
+            }
             continue;
           }
         }
 
         if (!result.shouldContinue) {
-          console.log(`🔴 ${operation.name}: ${result.reason} - stopping pipeline`);
+          if (isDebugEnabled) {
+            console.log(`🔴 ${operation.name}: ${result.reason} - stopping pipeline`);
+          }
           break;
         }
 
-        console.log(`⏭️  ${operation.name}: ${result.reason} - continuing pipeline`);
+        if (isDebugEnabled) {
+          console.log(`⏭️  ${operation.name}: ${result.reason} - continuing pipeline`);
+        }
       } catch (error) {
         console.error(`💥 ${operation.name}: Error -`, error);
         this.instrumentation.logOperationError(requestId, operation.name, error as Error, operationStartTime);

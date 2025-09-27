@@ -4,10 +4,10 @@ export class PriorityRoutingOps implements RoutingOperation {
   name = 'PriorityRouting';
 
   async execute(context: RoutingContext): Promise<RoutingResult> {
-    const { request, availableUpstreams, upstreamHealth, config } = context;
+    const { request, availableUpstreams, upstreamHealth, appConfig } = context;
 
     // Only handle non-block methods - let BlockBasedRouting handle methods with block parameters
-    const isHistoricalMethod = config.historicalMethods.includes(request.method);
+    const isHistoricalMethod = appConfig.historicalMethods.includes(request.method);
     if (isHistoricalMethod) {
       return {
         upstream: null,

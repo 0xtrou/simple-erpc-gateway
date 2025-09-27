@@ -54,7 +54,7 @@ export class UpstreamService {
     return recentErrors.length / Math.max(health.totalRequests, 1);
   }
 
-  private recordRequestResult(upstreamId: string, success: boolean, responseTime = 0): void {
+  public recordRequestResult(upstreamId: string, success: boolean, responseTime = 0): void {
     const health = this.upstreamHealth.get(upstreamId);
     if (!health) return;
 
@@ -83,8 +83,12 @@ export class UpstreamService {
     if (success && health.failoverUntil < Date.now()) {
       const errorRate = this.calculateErrorRate(upstreamId);
       if (errorRate < this.config.errorRateThreshold && health.consecutiveErrors === 0) {
+        const wasUnhealthy = !health.isHealthy;
         health.isHealthy = true;
-        console.info(`Upstream ${upstreamId} marked as healthy again. Error rate: ${errorRate.toFixed(3)}`);
+        // Only log when state changes from unhealthy to healthy
+        if (wasUnhealthy) {
+          console.info(`Upstream ${upstreamId} marked as healthy again. Error rate: ${errorRate.toFixed(3)}`);
+        }
       }
     }
   }

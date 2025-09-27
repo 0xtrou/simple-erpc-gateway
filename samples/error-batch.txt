@@ -1,0 +1,50 @@
+# Batch Request with Method Errors
+# This demonstrates valid batch with some methods that will return errors
+
+curl -X POST http://localhost:1099/indexing/ \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "jsonrpc": "2.0",
+      "method": "eth_getBalance",
+      "params": ["0x0000000000000000000000000000000000000000", "latest"],
+      "id": 1
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "invalid_method_name",
+      "params": [],
+      "id": 2
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "another_invalid_method",
+      "params": ["param1", "param2"],
+      "id": 3
+    }
+  ]'
+
+# Expected response:
+# [
+#   {
+#     "jsonrpc": "2.0",
+#     "id": 1,
+#     "result": "0x..." // successful balance query
+#   },
+#   {
+#     "jsonrpc": "2.0",
+#     "id": 2,
+#     "error": {
+#       "code": -32601,
+#       "message": "Method not found"
+#     }
+#   },
+#   {
+#     "jsonrpc": "2.0",
+#     "id": 3,
+#     "error": {
+#       "code": -32601,
+#       "message": "Method not found"
+#     }
+#   }
+# ]

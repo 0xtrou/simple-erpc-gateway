@@ -112,7 +112,8 @@ async function runInstrumentationTests(): Promise<void> {
     },
     availableUpstreams: [mockUpstream],
     upstreamHealth: new Map([[mockUpstream.id, mockHealth]]),
-    config: config.projects[0]
+    config: config.projects[0],
+    appConfig: config
   };
 
   const startTime = instrumentation.logOperationStart(requestId4, 'TestOperation', mockRoutingContext);

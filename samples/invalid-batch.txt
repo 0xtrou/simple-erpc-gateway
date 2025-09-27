@@ -1,0 +1,62 @@
+# Invalid Batch Requests
+# These demonstrate various validation failures that will return 400 errors
+
+# 1. Empty batch array (will be rejected)
+echo "=== Empty Batch Array ==="
+curl -X POST http://localhost:1099/indexing/ \
+  -H "Content-Type: application/json" \
+  -d '[]'
+
+echo -e "\n\n=== Missing Method Field ==="
+# 2. Missing method field (will be rejected)
+curl -X POST http://localhost:1099/indexing/ \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "jsonrpc": "2.0",
+      "params": ["0x0000000000000000000000000000000000000000", "latest"],
+      "id": 1
+    }
+  ]'
+
+echo -e "\n\n=== Invalid JSON-RPC Version ==="
+# 3. Invalid jsonrpc version (will be rejected)
+curl -X POST http://localhost:1099/indexing/ \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "jsonrpc": "1.0",
+      "method": "eth_getBalance",
+      "params": ["0x0000000000000000000000000000000000000000", "latest"],
+      "id": 1
+    }
+  ]'
+
+echo -e "\n\n=== Mixed Valid/Invalid Request ==="
+# 4. Mixed valid/invalid items (entire batch will be rejected due to malformed item)
+curl -X POST http://localhost:1099/indexing/ \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "jsonrpc": "2.0",
+      "method": "eth_getBalance",
+      "params": ["0x0000000000000000000000000000000000000000", "latest"],
+      "id": 1
+    },
+    {
+      "jsonrpc": "2.0",
+      "params": ["latest", false],
+      "id": 2
+    }
+  ]'
+
+# All of these will return responses like:
+# {
+#   "jsonrpc": "2.0",
+#   "error": {
+#     "code": -32600,
+#     "message": "Invalid Request",
+#     "data": [...] // detailed Zod validation errors
+#   },
+#   "id": null
+# }

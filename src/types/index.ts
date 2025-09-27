@@ -38,6 +38,18 @@ export interface LoggingConfig {
   debug: boolean;
 }
 
+export interface TimeoutConfig {
+  maxErrorTimeoutMs: number;
+  defaultResponseTimeoutMs: number;
+  defaultNodeStatusTimeoutMs: number;
+}
+
+export interface BlockchainConfig {
+  estimatedCurrentBlock: number;
+  blockTimeSeconds: number;
+  fullNodeRetentionMonths: number;
+}
+
 export interface ProjectConfig {
   id: string;
   description?: string;
@@ -47,11 +59,13 @@ export interface ProjectConfig {
   statusCheckInterval: number;
   responseTimeout: number;
   health: HealthConfig;
-  historicalMethods: string[];
 }
 
 export interface AppConfig {
   server: ServerConfig;
+  timeouts: TimeoutConfig;
+  blockchain: BlockchainConfig;
+  historicalMethods: string[];
   projects: ProjectConfig[];
   defaultProject: string;
   testing: TestingConfig;
@@ -101,7 +115,8 @@ export interface RoutingContext {
   nodeStatus: LocalNodeStatus | null;
   availableUpstreams: UpstreamConfig[];
   upstreamHealth: Map<string, UpstreamHealth>;
-  config: ProjectConfig; // Now uses ProjectConfig instead of AppConfig
+  config: ProjectConfig;
+  appConfig: AppConfig; // Reference to full app config for global settings
   selectedUpstream?: UpstreamConfig;
   error?: Error;
 }

@@ -1,0 +1,31 @@
+# Multi-Item Batch Request
+# This demonstrates a batch request with multiple different RPC methods
+
+curl -X POST http://localhost:1099/indexing/ \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "jsonrpc": "2.0",
+      "method": "eth_getBalance",
+      "params": ["0x0000000000000000000000000000000000000000", "latest"],
+      "id": 1
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "eth_getBlockByNumber",
+      "params": ["latest", false],
+      "id": 2
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "eth_getBlockByNumber",
+      "params": ["0x100000", false],
+      "id": 3
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "debug_traceBlockByNumber",
+      "params": ["latest", {}],
+      "id": 4
+    }
+  ]'
