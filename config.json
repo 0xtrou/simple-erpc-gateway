@@ -1,0 +1,89 @@
+{
+  "server": {
+    "host": "0.0.0.0",
+    "port": 1099
+  },
+  "upstreams": [
+    {
+      "id": "seitrace-public",
+      "rpcUrl": "https://rpc-evm-pacific-1.seitrace.com",
+      "statusUrl": "https://rpc-cosmos-pacific-1.seitrace.com/status",
+      "type": "full",
+      "priority": 1
+    },
+    {
+      "id": "sei-apis-primary",
+      "rpcUrl": "https://evm-rpc.sei-apis.com",
+      "type": "full",
+      "priority": 2
+    },
+    {
+      "id": "stingray-plus",
+      "rpcUrl": "https://evm-rpc-sei.stingray.plus",
+      "type": "full",
+      "priority": 3
+    },
+    {
+      "id": "publicnode",
+      "rpcUrl": "https://sei-evm-rpc.publicnode.com",
+      "type": "full",
+      "priority": 4
+    },
+    {
+      "id": "polkachu",
+      "rpcUrl": "https://seievm-rpc.polkachu.com",
+      "type": "full",
+      "priority": 5
+    },
+    {
+      "id": "seitrace-local",
+      "rpcUrl": "http://10.0.0.214:8545",
+      "statusUrl": "http://localhost:26657/status",
+      "type": "full",
+      "priority": 6
+    },
+    {
+      "id": "quicknode",
+      "rpcUrl": "https://smart-divine-spree.sei-pacific.quiknode.pro/eebcd16a0f91bbb3022babb247393074701f94fa",
+      "type": "archive",
+      "priority": 10
+    }
+  ],
+  "blockHeightBuffer": 1000,
+  "errorRateThreshold": 0.15,
+  "statusCheckInterval": 60000,
+  "responseTimeout": 15000,
+  "health": {
+    "errorRateWindowMs": 300000,
+    "maxConsecutiveErrors": 5,
+    "failoverCooldownMs": 60000,
+    "nodeStatusTimeoutMs": 5000
+  },
+  "historicalMethods": [
+    "eth_getBlockByNumber",
+    "eth_getBlockByHash",
+    "eth_getBlockTransactionCountByNumber",
+    "eth_getBlockTransactionCountByHash",
+    "eth_getTransactionByBlockNumberAndIndex",
+    "eth_getTransactionByBlockHashAndIndex",
+    "eth_getUncleByBlockNumberAndIndex",
+    "eth_getUncleByBlockHashAndIndex",
+    "eth_getUncleCountByBlockNumber",
+    "eth_getUncleCountByBlockHash",
+    "eth_getLogs",
+    "debug_traceBlockByNumber",
+    "debug_traceBlockByHash",
+    "debug_traceTransaction",
+    "debug_getBadBlocks",
+    "debug_getBlockRlp",
+    "debug_printBlock",
+    "debug_storageRangeAt",
+    "trace_block",
+    "trace_blockByNumber",
+    "trace_transaction",
+    "trace_get",
+    "trace_rawTransaction",
+    "trace_replayBlockTransactions",
+    "trace_replayTransaction"
+  ]
+}
