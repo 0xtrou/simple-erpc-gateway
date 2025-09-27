@@ -5,46 +5,28 @@
   },
   "upstreams": [
     {
-      "id": "seitrace-public",
-      "rpcUrl": "https://rpc-evm-pacific-1.seitrace.com",
-      "statusUrl": "https://rpc-cosmos-pacific-1.seitrace.com/status",
+      "id": "cheap-node-1",
+      "rpcUrl": "https://rpc-evm.example.com",
+      "statusUrl": "https://rpc-cosmos.example.com/status",
       "type": "full",
       "priority": 1
     },
     {
-      "id": "sei-apis-primary",
-      "rpcUrl": "https://evm-rpc.sei-apis.com",
+      "id": "cheap-node-2",
+      "rpcUrl": "https://evm-rpc.example2.com",
       "type": "full",
       "priority": 2
     },
     {
-      "id": "stingray-plus",
-      "rpcUrl": "https://evm-rpc-sei.stingray.plus",
-      "type": "full",
-      "priority": 3
-    },
-    {
-      "id": "publicnode",
-      "rpcUrl": "https://sei-evm-rpc.publicnode.com",
-      "type": "full",
-      "priority": 4
-    },
-    {
-      "id": "polkachu",
-      "rpcUrl": "https://seievm-rpc.polkachu.com",
-      "type": "full",
-      "priority": 5
-    },
-    {
-      "id": "seitrace-local",
-      "rpcUrl": "http://10.0.0.214:8545",
+      "id": "local-node",
+      "rpcUrl": "http://localhost:8545",
       "statusUrl": "http://localhost:26657/status",
       "type": "full",
       "priority": 6
     },
     {
-      "id": "quicknode",
-      "rpcUrl": "https://smart-divine-spree.sei-pacific.quiknode.pro/eebcd16a0f91bbb3022babb247393074701f94fa",
+      "id": "archive-node",
+      "rpcUrl": "https://archive.provider.com/your-api-key",
       "type": "archive",
       "priority": 10
     }

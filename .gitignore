@@ -19,7 +19,7 @@ erpc*.yaml
 coverage/
 CLAUDE*.md
 .claude/
-
+config.json
 # Environment variables
 .env
 .env.local
