@@ -14,11 +14,10 @@
     "dev": "ts-node src/server.ts",
     "dev:watch": "nodemon --exec ts-node src/server.ts",
     "pm2:start": "npm run build && pm2 start ecosystem.config.js",
-    "pm2:stop": "pm2 stop simple-erpc-gateway",
-    "pm2:restart": "pm2 restart simple-erpc-gateway",
-    "pm2:logs": "pm2 logs simple-erpc-gateway",
-    "pm2:monit": "pm2 monit",
-    "test": "npm run build && node dist/test.js",
+    "test": "npm run build && node dist/tests/integration.test.js",
+    "test:unit": "npm run build && node dist/tests/instrumentation.test.js",
+    "test:debug": "npm run build && node dist/tests/debug.test.js",
+    "test:all": "npm run build && node dist/tests/run-all.js",
     "clean": "rm -rf dist"
   },
   "dependencies": {

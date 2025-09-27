@@ -7,7 +7,6 @@
     "moduleResolution": "node",
     "typeRoots": ["node_modules/@types"],
     "outDir": "./dist",
-    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -19,15 +18,14 @@
     "removeComments": false,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "allowSyntheticDefaultImports": true,
-    "moduleResolution": "node"
+    "allowSyntheticDefaultImports": true
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "tests/**/*"
   ],
   "exclude": [
     "node_modules",
-    "dist",
-    "**/*.test.ts"
+    "dist"
   ]
 }

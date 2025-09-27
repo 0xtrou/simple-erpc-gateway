@@ -76,10 +76,10 @@ async function handleRequest(request: any, reply: any): Promise<void> {
       });
     }
 
-    console.log(`🔄 Processing ${requestBody.method} request`);
+    console.log(`🔄 Processing ${requestBody.method} request${request.query?.debug === '1' ? ' (DEBUG MODE)' : ''}`);
 
-    // Execute routing strategy
-    await strategy.execute(requestBody, reply);
+    // Execute routing strategy with request object for debug support
+    await strategy.execute(requestBody, reply, request);
 
   } catch (error) {
     console.error('💥 Request handling error:', error);

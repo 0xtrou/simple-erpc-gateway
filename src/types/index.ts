@@ -18,6 +18,25 @@ export interface HealthConfig {
   nodeStatusTimeoutMs: number;
 }
 
+export interface TestingConfig {
+  testAddress: string;
+  historicalBlockHex: string;
+  historicalBlockNumber: number;
+  veryOldBlockHex: string;
+  veryOldBlockNumber: number;
+  timeout: number;
+  maxDurationMs: number;
+  minDurationMs: number;
+}
+
+export interface LoggingConfig {
+  level: 'debug' | 'info' | 'warn' | 'error';
+  enableColors: boolean;
+  logRequests: boolean;
+  logUpstreamHealth: boolean;
+  logRoutingDecisions: boolean;
+}
+
 export interface AppConfig {
   server: ServerConfig;
   upstreams: UpstreamConfig[];
@@ -27,6 +46,8 @@ export interface AppConfig {
   responseTimeout: number;
   health: HealthConfig;
   historicalMethods: string[];
+  testing: TestingConfig;
+  logging: LoggingConfig;
 }
 
 export interface UpstreamHealth {
@@ -91,4 +112,36 @@ export interface RoutingOperation {
 export interface RoutingStrategy {
   registerPipe(operations: RoutingOperation[]): void;
   execute(request: JsonRpcRequest, response: any): Promise<void>;
+}
+
+export interface DebugEvent {
+  timestamp: number;
+  operation: string;
+  action: 'start' | 'result' | 'error' | 'skip';
+  data: any;
+  duration?: number;
+}
+
+export interface InstrumentationContext {
+  requestId: string;
+  startTime: number;
+  events: DebugEvent[];
+  isDebugEnabled: boolean;
+}
+
+export interface DebugResponse extends JsonRpcResponse {
+  debug?: {
+    requestId: string;
+    totalDuration: number;
+    strategy: {
+      pipeline: string[];
+      events: DebugEvent[];
+    };
+    context: {
+      blockNumber: number | 'latest' | null;
+      availableUpstreams: string[];
+      healthyUpstreams: string[];
+      selectedUpstream?: string;
+    };
+  };
 }
