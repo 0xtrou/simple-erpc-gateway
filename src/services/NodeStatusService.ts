@@ -64,9 +64,9 @@ export class NodeStatusService {
 
         const data = await response.json() as any;
         this.localNodeStatus = {
-          earliestBlockHeight: parseInt(data.result.sync_info.earliest_block_height),
-          latestBlockHeight: parseInt(data.result.sync_info.latest_block_height),
-          catchingUp: data.result.sync_info.catching_up,
+          earliestBlockHeight: parseInt(data.sync_info.earliest_block_height),
+          latestBlockHeight: parseInt(data.sync_info.latest_block_height),
+          catchingUp: data.sync_info.catching_up,
           lastUpdated: now
         };
 
