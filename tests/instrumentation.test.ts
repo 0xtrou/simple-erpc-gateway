@@ -82,7 +82,7 @@ async function runInstrumentationTests(): Promise<void> {
   instrumentation.startRequest(requestId4, true);
 
   // Create mock routing context using config values
-  const mockUpstream: UpstreamConfig = config.upstreams[0]; // Use first upstream from config
+  const mockUpstream: UpstreamConfig = config.projects[0].upstreams[0]; // Use first upstream from config
 
   const mockHealth: UpstreamHealth = {
     errors: [],
@@ -112,7 +112,7 @@ async function runInstrumentationTests(): Promise<void> {
     },
     availableUpstreams: [mockUpstream],
     upstreamHealth: new Map([[mockUpstream.id, mockHealth]]),
-    config: config
+    config: config.projects[0]
   };
 
   const startTime = instrumentation.logOperationStart(requestId4, 'TestOperation', mockRoutingContext);

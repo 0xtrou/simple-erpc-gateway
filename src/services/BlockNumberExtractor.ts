@@ -1,7 +1,7 @@
-import { AppConfig } from '../types';
+import { ProjectConfig } from '../types';
 
 export class BlockNumberExtractor {
-  constructor(private config: AppConfig) {}
+  constructor(private config: ProjectConfig) {}
 
   extract(method: string, params?: any[]): number | 'latest' | null {
     if (!params || !Array.isArray(params)) return null;

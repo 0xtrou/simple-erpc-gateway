@@ -1,5 +1,5 @@
 import fetch from 'node-fetch';
-import { UpstreamConfig, UpstreamHealth, JsonRpcRequest, AppConfig } from '../types';
+import { UpstreamConfig, UpstreamHealth, JsonRpcRequest, ProjectConfig } from '../types';
 
 export interface ProxyResult {
   success: boolean;
@@ -11,7 +11,7 @@ export interface ProxyResult {
 export class UpstreamService {
   private upstreamHealth: Map<string, UpstreamHealth> = new Map();
 
-  constructor(private config: AppConfig) {
+  constructor(private config: ProjectConfig) {
     this.initializeHealth();
   }
 

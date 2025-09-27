@@ -1,11 +1,11 @@
 import fetch from 'node-fetch';
-import { LocalNodeStatus, AppConfig } from '../types';
+import { LocalNodeStatus, ProjectConfig } from '../types';
 
 export class NodeStatusService {
   private localNodeStatus: LocalNodeStatus | null = null;
   private lastStatusCheck = 0;
 
-  constructor(private config: AppConfig) {}
+  constructor(private config: ProjectConfig) {}
 
   async getStatus(): Promise<LocalNodeStatus | null> {
     const now = Date.now();

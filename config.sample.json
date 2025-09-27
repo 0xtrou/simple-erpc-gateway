@@ -3,71 +3,107 @@
     "host": "0.0.0.0",
     "port": 1099
   },
-  "upstreams": [
+  "projects": [
     {
-      "id": "cheap-node-1",
-      "rpcUrl": "https://rpc-evm.example.com",
-      "statusUrl": "https://rpc-cosmos.example.com/status",
-      "type": "full",
-      "priority": 1
+      "id": "indexing",
+      "description": "High-throughput configuration for indexing operations",
+      "upstreams": [
+        {
+          "id": "local-indexing-node",
+          "rpcUrl": "http://localhost:8545",
+          "statusUrl": "http://localhost:26657/status",
+          "type": "full",
+          "priority": 1
+        },
+        {
+          "id": "fast-archive-node",
+          "rpcUrl": "https://archive.provider.com/your-api-key",
+          "type": "archive",
+          "priority": 2
+        }
+      ],
+      "blockHeightBuffer": 100,
+      "errorRateThreshold": 0.25,
+      "statusCheckInterval": 30000,
+      "responseTimeout": 30000,
+      "health": {
+        "errorRateWindowMs": 180000,
+        "maxConsecutiveErrors": 10,
+        "failoverCooldownMs": 30000,
+        "nodeStatusTimeoutMs": 10000
+      },
+      "historicalMethods": [
+        "eth_getBlockByNumber",
+        "eth_getBlockByHash",
+        "eth_getLogs",
+        "eth_getTransactionByHash",
+        "eth_getTransactionReceipt"
+      ]
     },
     {
-      "id": "cheap-node-2",
-      "rpcUrl": "https://evm-rpc.example2.com",
-      "type": "full",
-      "priority": 2
-    },
-    {
-      "id": "local-node",
-      "rpcUrl": "http://localhost:8545",
-      "statusUrl": "http://localhost:26657/status",
-      "type": "full",
-      "priority": 6
-    },
-    {
-      "id": "archive-node",
-      "rpcUrl": "https://archive.provider.com/your-api-key",
-      "type": "archive",
-      "priority": 10
+      "id": "gateway",
+      "description": "Cost-optimized configuration for public gateway",
+      "upstreams": [
+        {
+          "id": "cheap-node-1",
+          "rpcUrl": "https://rpc-evm.example.com",
+          "statusUrl": "https://rpc-cosmos.example.com/status",
+          "type": "full",
+          "priority": 1
+        },
+        {
+          "id": "cheap-node-2",
+          "rpcUrl": "https://evm-rpc.example2.com",
+          "type": "full",
+          "priority": 2
+        },
+        {
+          "id": "backup-archive-node",
+          "rpcUrl": "https://archive.provider.com/your-api-key",
+          "type": "archive",
+          "priority": 10
+        }
+      ],
+      "blockHeightBuffer": 1000,
+      "errorRateThreshold": 0.15,
+      "statusCheckInterval": 60000,
+      "responseTimeout": 15000,
+      "health": {
+        "errorRateWindowMs": 300000,
+        "maxConsecutiveErrors": 5,
+        "failoverCooldownMs": 60000,
+        "nodeStatusTimeoutMs": 5000
+      },
+      "historicalMethods": [
+        "eth_getBlockByNumber",
+        "eth_getBlockByHash",
+        "eth_getBlockTransactionCountByNumber",
+        "eth_getBlockTransactionCountByHash",
+        "eth_getTransactionByBlockNumberAndIndex",
+        "eth_getTransactionByBlockHashAndIndex",
+        "eth_getUncleByBlockNumberAndIndex",
+        "eth_getUncleByBlockHashAndIndex",
+        "eth_getUncleCountByBlockNumber",
+        "eth_getUncleCountByBlockHash",
+        "eth_getLogs",
+        "debug_traceBlockByNumber",
+        "debug_traceBlockByHash",
+        "debug_traceTransaction",
+        "debug_getBadBlocks",
+        "debug_getBlockRlp",
+        "debug_printBlock",
+        "debug_storageRangeAt",
+        "trace_block",
+        "trace_blockByNumber",
+        "trace_transaction",
+        "trace_get",
+        "trace_rawTransaction",
+        "trace_replayBlockTransactions",
+        "trace_replayTransaction"
+      ]
     }
   ],
-  "blockHeightBuffer": 1000,
-  "errorRateThreshold": 0.15,
-  "statusCheckInterval": 60000,
-  "responseTimeout": 15000,
-  "health": {
-    "errorRateWindowMs": 300000,
-    "maxConsecutiveErrors": 5,
-    "failoverCooldownMs": 60000,
-    "nodeStatusTimeoutMs": 5000
-  },
-  "historicalMethods": [
-    "eth_getBlockByNumber",
-    "eth_getBlockByHash",
-    "eth_getBlockTransactionCountByNumber",
-    "eth_getBlockTransactionCountByHash",
-    "eth_getTransactionByBlockNumberAndIndex",
-    "eth_getTransactionByBlockHashAndIndex",
-    "eth_getUncleByBlockNumberAndIndex",
-    "eth_getUncleByBlockHashAndIndex",
-    "eth_getUncleCountByBlockNumber",
-    "eth_getUncleCountByBlockHash",
-    "eth_getLogs",
-    "debug_traceBlockByNumber",
-    "debug_traceBlockByHash",
-    "debug_traceTransaction",
-    "debug_getBadBlocks",
-    "debug_getBlockRlp",
-    "debug_printBlock",
-    "debug_storageRangeAt",
-    "trace_block",
-    "trace_blockByNumber",
-    "trace_transaction",
-    "trace_get",
-    "trace_rawTransaction",
-    "trace_replayBlockTransactions",
-    "trace_replayTransaction"
-  ],
+  "defaultProject": "gateway",
   "testing": {
     "testAddress": "0x0000000000000000000000000000000000000000",
     "historicalBlockHex": "0xa1e8400",

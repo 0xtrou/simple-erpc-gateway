@@ -163,7 +163,7 @@ async function runDebugTests(): Promise<void> {
 
       // Validate upstream type (if specified)
       if (testCase.expectedUpstreamType && result.debug?.context.selectedUpstream) {
-        const selectedUpstream = config.upstreams.find(u => u.id === result.debug!.context.selectedUpstream);
+        const selectedUpstream = config.projects[0].upstreams.find((u: any) => u.id === result.debug!.context.selectedUpstream);
         if (!selectedUpstream || selectedUpstream.type !== testCase.expectedUpstreamType) {
           issues.push(`Expected ${testCase.expectedUpstreamType} upstream, got ${selectedUpstream?.type || 'unknown'}`);
           testPassed = false;

@@ -117,7 +117,7 @@ async function runOperationSequenceTests(): Promise<void> {
       }
 
       const actualPipeline = result.debug.strategy.pipeline;
-      const actualUpstream = config.upstreams.find(u => u.id === result.debug!.context.selectedUpstream);
+      const actualUpstream = config.projects[0].upstreams.find((u: any) => u.id === result.debug!.context.selectedUpstream);
 
       console.log(`   Actual:   ${actualPipeline.join(' → ')}`);
 

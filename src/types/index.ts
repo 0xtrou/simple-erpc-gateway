@@ -37,8 +37,9 @@ export interface LoggingConfig {
   logRoutingDecisions: boolean;
 }
 
-export interface AppConfig {
-  server: ServerConfig;
+export interface ProjectConfig {
+  id: string;
+  description?: string;
   upstreams: UpstreamConfig[];
   blockHeightBuffer: number;
   errorRateThreshold: number;
@@ -46,6 +47,12 @@ export interface AppConfig {
   responseTimeout: number;
   health: HealthConfig;
   historicalMethods: string[];
+}
+
+export interface AppConfig {
+  server: ServerConfig;
+  projects: ProjectConfig[];
+  defaultProject: string;
   testing: TestingConfig;
   logging: LoggingConfig;
 }
@@ -93,7 +100,7 @@ export interface RoutingContext {
   nodeStatus: LocalNodeStatus | null;
   availableUpstreams: UpstreamConfig[];
   upstreamHealth: Map<string, UpstreamHealth>;
-  config: AppConfig;
+  config: ProjectConfig; // Now uses ProjectConfig instead of AppConfig
   selectedUpstream?: UpstreamConfig;
   error?: Error;
 }
