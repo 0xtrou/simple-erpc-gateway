@@ -29,7 +29,8 @@ CLAUDE*.md
 dist/
 # PM2 runtime files
 .pm2/
-
+examples.txt
+inspect.json
 # OS generated files
 .DS_Store
 .DS_Store?

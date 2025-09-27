@@ -4,7 +4,17 @@ export class PriorityRoutingOps implements RoutingOperation {
   name = 'PriorityRouting';
 
   async execute(context: RoutingContext): Promise<RoutingResult> {
-    const { availableUpstreams, upstreamHealth } = context;
+    const { request, availableUpstreams, upstreamHealth, config } = context;
+
+    // Only handle non-block methods - let BlockBasedRouting handle methods with block parameters
+    const isHistoricalMethod = config.historicalMethods.includes(request.method);
+    if (isHistoricalMethod) {
+      return {
+        upstream: null,
+        reason: `Skipping priority routing for block method ${request.method} - delegating to BlockBasedRouting`,
+        shouldContinue: true
+      };
+    }
 
     // Try upstreams in priority order, skip archive nodes in first pass
     for (const upstream of availableUpstreams) {
@@ -15,7 +25,7 @@ export class PriorityRoutingOps implements RoutingOperation {
       if (health?.isHealthy) {
         return {
           upstream,
-          reason: `Selected ${upstream.id} by priority (${upstream.priority}) - type: ${upstream.type}`,
+          reason: `Selected ${upstream.id} by priority (${upstream.priority}) for non-block method - type: ${upstream.type}`,
           shouldContinue: false
         };
       }

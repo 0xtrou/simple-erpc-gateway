@@ -17,7 +17,19 @@ export class NodeStatusService {
       // Find the first upstream with a statusUrl (usually local node)
       const localUpstream = this.config.upstreams.find(u => u.statusUrl);
       const statusUrl = localUpstream?.statusUrl;
-      if (!statusUrl) return null;
+
+      if (!statusUrl) {
+        // No status URL configured - assume node is caught up with full block range
+        this.localNodeStatus = {
+          earliestBlockHeight: 1, // Assume we have blocks from genesis
+          latestBlockHeight: 999999999, // Assume we're always up to date
+          catchingUp: false,
+          lastUpdated: now
+        };
+        this.lastStatusCheck = now;
+        console.log('No status URL configured - assuming node is caught up with full block range');
+        return this.localNodeStatus;
+      }
 
       const response = await fetch(statusUrl, {
         timeout: this.config.health.nodeStatusTimeoutMs

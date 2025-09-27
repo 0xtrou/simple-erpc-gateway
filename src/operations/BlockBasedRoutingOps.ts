@@ -6,11 +6,42 @@ export class BlockBasedRoutingOps implements RoutingOperation {
   async execute(context: RoutingContext): Promise<RoutingResult> {
     const { blockNumber, nodeStatus, availableUpstreams, upstreamHealth } = context;
 
-    // Only apply block-based routing if we have a block number and node status
-    if (blockNumber === null || blockNumber === 'latest' || !nodeStatus) {
+    // Only apply block-based routing if we have a block number
+    if (blockNumber === null) {
       return {
         upstream: null,
-        reason: 'No block number or node status available for block-based routing',
+        reason: 'No block number available for block-based routing',
+        shouldContinue: true
+      };
+    }
+
+    // Handle 'latest' blocks - always use cheap nodes
+    if (blockNumber === 'latest') {
+      for (const upstream of availableUpstreams) {
+        if (upstream.type === 'archive') continue; // Skip archive nodes for latest
+
+        const health = upstreamHealth.get(upstream.id);
+        if (health?.isHealthy) {
+          return {
+            upstream,
+            reason: `Latest block - using cheap node ${upstream.id} by priority (${upstream.priority})`,
+            shouldContinue: false
+          };
+        }
+      }
+
+      return {
+        upstream: null,
+        reason: 'No healthy cheap nodes available for latest block',
+        shouldContinue: true
+      };
+    }
+
+    // For numbered blocks, need node status to determine age
+    if (!nodeStatus) {
+      return {
+        upstream: null,
+        reason: 'Node status unavailable for numbered block routing',
         shouldContinue: true
       };
     }

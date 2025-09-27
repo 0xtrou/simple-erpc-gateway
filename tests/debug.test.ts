@@ -35,12 +35,12 @@ async function runDebugTests(): Promise<void> {
       expectedOperations: ['PriorityRouting', 'pipeline']
     },
     {
-      name: 'Block-Based Routing - Recent Block',
-      description: 'Should use BlockBasedRoutingOps for recent block that can be handled by cheap node',
+      name: 'Block-Based Routing - Latest Block',
+      description: 'Should use BlockBasedRoutingOps for latest block with cheap node',
       body: {
         jsonrpc: '2.0',
         method: 'eth_getBlockByNumber',
-        params: ['0xFFFFFF', false], // High block number
+        params: ['latest', false], // Latest block - should use cheap node
         id: 2
       },
       expectedUpstreamType: 'full',
