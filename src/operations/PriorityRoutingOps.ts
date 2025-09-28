@@ -1,7 +1,7 @@
 import { RoutingOperation, RoutingContext, RoutingResult } from '../types';
 
 export class PriorityRoutingOps implements RoutingOperation {
-  name = 'HealthFiltering';
+  name = 'PriorityRoutingOps';
 
   async execute(context: RoutingContext): Promise<RoutingResult> {
     const { availableUpstreams, upstreamHealth } = context;
@@ -20,7 +20,7 @@ export class PriorityRoutingOps implements RoutingOperation {
     return {
       filteredUpstreams: healthyUpstreams,
       reason: `Filtered ${healthyCount}/${totalCount} healthy upstreams, sorted by priority`,
-      shouldContinue: healthyCount > 0
+      shouldContinue: true  // Always continue to allow emergency fallbacks
     };
   }
 }

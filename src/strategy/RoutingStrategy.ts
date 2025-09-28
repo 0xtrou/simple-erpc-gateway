@@ -1,9 +1,16 @@
-import { FastifyReply, FastifyRequest } from 'fastify';
-import { RoutingOperation, RoutingContext, JsonRpcRequest, RoutingStrategy, DebugResponse, AppConfig } from '../types';
-import { UpstreamService } from '../services/UpstreamService';
-import { BlockNumberExtractor } from '../services/BlockNumberExtractor';
-import { NodeStatusService } from '../services/NodeStatusService';
-import { InstrumentationService } from '../services/InstrumentationService';
+import { FastifyReply, FastifyRequest } from "fastify";
+import {
+  RoutingOperation,
+  RoutingContext,
+  JsonRpcRequest,
+  RoutingStrategy,
+  DebugResponse,
+  AppConfig,
+} from "../types";
+import { UpstreamService } from "../services/UpstreamService";
+import { BlockNumberExtractor } from "../services/BlockNumberExtractor";
+import { NodeStatusService } from "../services/NodeStatusService";
+import { InstrumentationService } from "../services/InstrumentationService";
 
 export class DefaultRoutingStrategy implements RoutingStrategy {
   private operations: RoutingOperation[] = [];
@@ -20,20 +27,27 @@ export class DefaultRoutingStrategy implements RoutingStrategy {
     this.operations = operations;
   }
 
-  async execute(request: JsonRpcRequest, reply: FastifyReply, fastifyRequest?: FastifyRequest): Promise<void> {
+  async execute(
+    request: JsonRpcRequest,
+    reply: FastifyReply,
+    fastifyRequest?: FastifyRequest
+  ): Promise<void> {
     // Check if debug mode is enabled
-    const isDebugEnabled = fastifyRequest?.query &&
-      (fastifyRequest.query as any).debug === '1';
+    const isDebugEnabled =
+      fastifyRequest?.query && (fastifyRequest.query as any).debug === "1";
 
     // Start instrumentation
     const requestId = this.instrumentation.generateRequestId();
     this.instrumentation.startRequest(requestId, !!isDebugEnabled);
 
-    const blockNumber = this.blockExtractor.extract(request.method, request.params);
+    const blockNumber = this.blockExtractor.extract(
+      request.method,
+      request.params
+    );
     const nodeStatus = await this.nodeStatusService.getStatus();
     const allUpstreams = this.upstreamService.getAvailableUpstreams();
     // Start with non-archive upstreams only (archives are expensive, use as last resort)
-    let availableUpstreams = allUpstreams.filter(u => u.type !== 'archive');
+    let availableUpstreams = allUpstreams.filter((u) => u.type !== "archive");
     const upstreamHealth = this.upstreamService.getHealthMap();
 
     const context: RoutingContext = {
@@ -43,7 +57,7 @@ export class DefaultRoutingStrategy implements RoutingStrategy {
       availableUpstreams,
       allUpstreams, // Include all upstreams for ArchiveFilter emergency fallback
       upstreamHealth,
-      config: this.upstreamService['config'],
+      config: this.upstreamService["config"],
       appConfig: this.appConfig,
     };
 
@@ -54,12 +68,20 @@ export class DefaultRoutingStrategy implements RoutingStrategy {
       // Update context with current filtered upstreams BEFORE logging
       context.availableUpstreams = availableUpstreams;
 
-      const operationStartTime = this.instrumentation.logOperationStart(requestId, operation.name, context);
+      const operationStartTime = this.instrumentation.logOperationStart(
+        requestId,
+        operation.name,
+        context
+      );
 
       try {
-
         const result = await operation.execute(context);
-        this.instrumentation.logOperationResult(requestId, operation.name, result, operationStartTime);
+        this.instrumentation.logOperationResult(
+          requestId,
+          operation.name,
+          result,
+          operationStartTime
+        );
 
         // Log operation result in debug mode
         if (isDebugEnabled) {
@@ -72,7 +94,9 @@ export class DefaultRoutingStrategy implements RoutingStrategy {
           context.selectedUpstream = selectedUpstream;
 
           if (isDebugEnabled) {
-            console.log(`✅ ${operation.name}: Selected ${selectedUpstream.id}`);
+            console.log(
+              `✅ ${operation.name}: Selected ${selectedUpstream.id}`
+            );
           }
           // Don't break - continue through remaining operations (especially MetricsHandlingOps)
         }
@@ -80,17 +104,23 @@ export class DefaultRoutingStrategy implements RoutingStrategy {
         // Update available upstreams for next operation
         availableUpstreams = result.filteredUpstreams;
 
-        // If no upstreams left or operation says stop, break
-        if (!result.shouldContinue || availableUpstreams.length === 0) {
+        // If operation says stop, break (but allow continuing with 0 upstreams for emergency fallbacks)
+        if (!result.shouldContinue) {
           if (isDebugEnabled) {
-            console.log(`🔴 ${operation.name}: Pipeline stopped - ${availableUpstreams.length} upstreams remaining`);
+            console.log(
+              `🔴 ${operation.name}: Pipeline stopped by operation - ${availableUpstreams.length} upstreams remaining`
+            );
           }
           break;
         }
-
       } catch (error) {
         console.error(`💥 ${operation.name}: Error -`, error);
-        this.instrumentation.logOperationError(requestId, operation.name, error as Error, operationStartTime);
+        this.instrumentation.logOperationError(
+          requestId,
+          operation.name,
+          error as Error,
+          operationStartTime
+        );
         context.error = error as Error;
       }
     }
@@ -107,21 +137,35 @@ export class DefaultRoutingStrategy implements RoutingStrategy {
 
     // If we have a selected upstream, execute the request
     if (selectedUpstream) {
-      const response = await this.upstreamService.proxyRequest(selectedUpstream, request);
-      this.instrumentation.logRequestProxy(requestId, selectedUpstream.id, response.success, response.error);
+      const response = await this.upstreamService.proxyRequest(
+        selectedUpstream,
+        request
+      );
+      this.instrumentation.logRequestProxy(
+        requestId,
+        selectedUpstream.id,
+        response.success,
+        response.error
+      );
 
       if (response.success) {
-        const debugInfo = this.instrumentation.finishRequest(requestId, context);
+        const debugInfo = this.instrumentation.finishRequest(
+          requestId,
+          context
+        );
 
         // Set upstream info for production logging
-        if ((reply as any).setUpstreamUsed && typeof (reply as any).setUpstreamUsed === 'function') {
+        if (
+          (reply as any).setUpstreamUsed &&
+          typeof (reply as any).setUpstreamUsed === "function"
+        ) {
           (reply as any).setUpstreamUsed(selectedUpstream.id);
         }
 
         if (isDebugEnabled && debugInfo) {
           const debugResponse: DebugResponse = {
             ...response.data,
-            debug: debugInfo
+            debug: debugInfo,
           };
           return reply.send(debugResponse);
         }
@@ -130,7 +174,9 @@ export class DefaultRoutingStrategy implements RoutingStrategy {
       } else {
         // Request failed, return error
         if (isDebugEnabled) {
-          console.warn(`❌ Request to ${selectedUpstream.id} failed: ${response.error}`);
+          console.warn(
+            `❌ Request to ${selectedUpstream.id} failed: ${response.error}`
+          );
         }
       }
     }
@@ -138,15 +184,18 @@ export class DefaultRoutingStrategy implements RoutingStrategy {
     // If we reach here, no upstreams available or all failed
     const debugInfo = this.instrumentation.finishRequest(requestId, context);
     const errorResponse = {
-      jsonrpc: '2.0',
-      error: { code: -32603, message: 'No upstreams available or all upstreams failed' },
-      id: request.id
+      jsonrpc: "2.0",
+      error: {
+        code: -32603,
+        message: "No upstreams available or all upstreams failed",
+      },
+      id: request.id,
     };
 
     if (isDebugEnabled && debugInfo) {
       const debugErrorResponse: DebugResponse = {
         ...errorResponse,
-        debug: debugInfo
+        debug: debugInfo,
       };
       return reply.code(502).send(debugErrorResponse);
     }
