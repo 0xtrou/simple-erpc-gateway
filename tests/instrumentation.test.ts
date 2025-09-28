@@ -111,6 +111,7 @@ async function runInstrumentationTests(): Promise<void> {
       lastUpdated: Date.now()
     },
     availableUpstreams: [mockUpstream],
+    allUpstreams: [mockUpstream],
     upstreamHealth: new Map([[mockUpstream.id, mockHealth]]),
     config: config.projects[0],
     appConfig: config

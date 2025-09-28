@@ -31,7 +31,9 @@ export class DefaultRoutingStrategy implements RoutingStrategy {
 
     const blockNumber = this.blockExtractor.extract(request.method, request.params);
     const nodeStatus = await this.nodeStatusService.getStatus();
-    let availableUpstreams = this.upstreamService.getAvailableUpstreams();
+    const allUpstreams = this.upstreamService.getAvailableUpstreams();
+    // Start with non-archive upstreams only (archives are expensive, use as last resort)
+    let availableUpstreams = allUpstreams.filter(u => u.type !== 'archive');
     const upstreamHealth = this.upstreamService.getHealthMap();
 
     const context: RoutingContext = {
@@ -39,6 +41,7 @@ export class DefaultRoutingStrategy implements RoutingStrategy {
       blockNumber,
       nodeStatus,
       availableUpstreams,
+      allUpstreams, // Include all upstreams for ArchiveFilter emergency fallback
       upstreamHealth,
       config: this.upstreamService['config'],
       appConfig: this.appConfig,
@@ -48,11 +51,12 @@ export class DefaultRoutingStrategy implements RoutingStrategy {
 
     // Execute operations in pipeline as filters (map-reduce pattern)
     for (const operation of this.operations) {
+      // Update context with current filtered upstreams BEFORE logging
+      context.availableUpstreams = availableUpstreams;
+
       const operationStartTime = this.instrumentation.logOperationStart(requestId, operation.name, context);
 
       try {
-        // Update context with current filtered upstreams
-        context.availableUpstreams = availableUpstreams;
 
         const result = await operation.execute(context);
         this.instrumentation.logOperationResult(requestId, operation.name, result, operationStartTime);
@@ -62,7 +66,7 @@ export class DefaultRoutingStrategy implements RoutingStrategy {
           console.log(`🔄 ${operation.name}: ${result.reason}`);
         }
 
-        // If operation selected an upstream, we're done with filtering
+        // If operation selected an upstream, store it but continue pipeline
         if (result.selectedUpstream) {
           selectedUpstream = result.selectedUpstream;
           context.selectedUpstream = selectedUpstream;
@@ -70,7 +74,7 @@ export class DefaultRoutingStrategy implements RoutingStrategy {
           if (isDebugEnabled) {
             console.log(`✅ ${operation.name}: Selected ${selectedUpstream.id}`);
           }
-          break;
+          // Don't break - continue through remaining operations (especially MetricsHandlingOps)
         }
 
         // Update available upstreams for next operation
@@ -108,6 +112,11 @@ export class DefaultRoutingStrategy implements RoutingStrategy {
 
       if (response.success) {
         const debugInfo = this.instrumentation.finishRequest(requestId, context);
+
+        // Set upstream info for production logging
+        if ((reply as any).setUpstreamUsed && typeof (reply as any).setUpstreamUsed === 'function') {
+          (reply as any).setUpstreamUsed(selectedUpstream.id);
+        }
 
         if (isDebugEnabled && debugInfo) {
           const debugResponse: DebugResponse = {

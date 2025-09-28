@@ -231,6 +231,7 @@ async function runRecoveryTests(): Promise<void> {
         blockNumber: 'latest',
         nodeStatus: null,
         availableUpstreams: testUpstreams,
+      allUpstreams: testUpstreams,
         upstreamHealth: health,
         config: {
           errorRateThreshold: 0.1, // 10%

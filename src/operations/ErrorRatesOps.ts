@@ -31,10 +31,13 @@ export class ErrorRatesOps implements RoutingOperation {
       }
     }
 
-    // Include recovered upstreams in the result
-    const finalUpstreams = availableUpstreams.length > 0
-      ? availableUpstreams
-      : recoveredUpstreams;
+    // Filter to healthy upstreams + any newly recovered upstreams
+    const healthyUpstreams = availableUpstreams.filter(upstream => {
+      const health = upstreamHealth.get(upstream.id);
+      return health?.isHealthy === true;
+    });
+
+    const finalUpstreams = [...new Set([...healthyUpstreams, ...recoveredUpstreams])];
 
     if (finalUpstreams.length === 0) {
       console.warn('No upstreams available after recovery attempt');

@@ -1,7 +1,7 @@
 import { RoutingOperation, RoutingContext, RoutingResult } from '../types';
 
 export class BlockBasedRoutingOps implements RoutingOperation {
-  name = 'BlockBasedSelector';
+  name = 'BlockBasedRouting';
 
   async execute(context: RoutingContext): Promise<RoutingResult> {
     const { blockNumber, nodeStatus, availableUpstreams, request, appConfig } = context;
@@ -9,7 +9,7 @@ export class BlockBasedRoutingOps implements RoutingOperation {
     if (availableUpstreams.length === 0) {
       return {
         filteredUpstreams: [],
-        reason: 'No upstreams available for selection',
+        reason: 'No upstreams available for block-based filtering',
         shouldContinue: false
       };
     }
@@ -17,17 +17,16 @@ export class BlockBasedRoutingOps implements RoutingOperation {
     // Determine if this is a historical method that requires special handling
     const isHistoricalMethod = appConfig.historicalMethods.includes(request.method);
 
-    // For non-historical methods or when block number is null/latest, use first available upstream
+    // For non-historical methods or when block number is null/latest, prefer non-archive nodes
     if (!isHistoricalMethod || blockNumber === null || blockNumber === 'latest') {
-      // Prefer non-archive nodes for cost optimization
+      // Filter to prefer non-archive nodes for cost optimization, but keep archives as fallback
       const nonArchiveUpstreams = availableUpstreams.filter(u => u.type !== 'archive');
-      const selectedUpstream = nonArchiveUpstreams.length > 0 ? nonArchiveUpstreams[0] : availableUpstreams[0];
+      const filteredUpstreams = nonArchiveUpstreams.length > 0 ? nonArchiveUpstreams : availableUpstreams;
 
       return {
-        filteredUpstreams: availableUpstreams,
-        selectedUpstream,
-        reason: `Selected ${selectedUpstream.id} for ${blockNumber || 'non-block'} request - type: ${selectedUpstream.type}, priority: ${selectedUpstream.priority}`,
-        shouldContinue: false
+        filteredUpstreams,
+        reason: `Block-based filter: ${filteredUpstreams.length}/${availableUpstreams.length} upstreams for ${blockNumber || 'non-block'} request`,
+        shouldContinue: true
       };
     }
 
@@ -35,47 +34,43 @@ export class BlockBasedRoutingOps implements RoutingOperation {
     if (!nodeStatus) {
       // Without node status, prefer archive nodes for historical methods
       const archiveUpstreams = availableUpstreams.filter(u => u.type === 'archive');
-      const selectedUpstream = archiveUpstreams.length > 0 ? archiveUpstreams[0] : availableUpstreams[0];
+      const filteredUpstreams = archiveUpstreams.length > 0 ? archiveUpstreams : availableUpstreams;
 
       return {
-        filteredUpstreams: availableUpstreams,
-        selectedUpstream,
-        reason: `Selected ${selectedUpstream.id} for historical method (no node status) - type: ${selectedUpstream.type}`,
-        shouldContinue: false
+        filteredUpstreams,
+        reason: `Block-based filter: ${filteredUpstreams.length}/${availableUpstreams.length} upstreams for historical method (no node status)`,
+        shouldContinue: true
       };
     }
 
     const minAvailableBlock = nodeStatus.earliestBlockHeight + context.config.blockHeightBuffer;
 
-    // If block is too old, prefer archive nodes
+    // If block is too old, strongly prefer archive nodes
     if (blockNumber < minAvailableBlock) {
       const archiveUpstreams = availableUpstreams.filter(u => u.type === 'archive');
       if (archiveUpstreams.length > 0) {
         return {
-          filteredUpstreams: availableUpstreams,
-          selectedUpstream: archiveUpstreams[0],
-          reason: `Selected archive ${archiveUpstreams[0].id} for old block ${blockNumber} < ${minAvailableBlock}`,
-          shouldContinue: false
+          filteredUpstreams: archiveUpstreams,
+          reason: `Block-based filter: ${archiveUpstreams.length}/${availableUpstreams.length} archive upstreams for old block ${blockNumber} < ${minAvailableBlock}`,
+          shouldContinue: true
         };
       }
       // Fallback to any available upstream if no archive nodes
       return {
         filteredUpstreams: availableUpstreams,
-        selectedUpstream: availableUpstreams[0],
-        reason: `Selected ${availableUpstreams[0].id} for old block ${blockNumber} (no archive nodes available)`,
-        shouldContinue: false
+        reason: `Block-based filter: ${availableUpstreams.length} upstreams for old block ${blockNumber} (no archive nodes available)`,
+        shouldContinue: true
       };
     }
 
     // Block is recent enough - prefer non-archive nodes for cost optimization
     const nonArchiveUpstreams = availableUpstreams.filter(u => u.type !== 'archive');
-    const selectedUpstream = nonArchiveUpstreams.length > 0 ? nonArchiveUpstreams[0] : availableUpstreams[0];
+    const filteredUpstreams = nonArchiveUpstreams.length > 0 ? nonArchiveUpstreams : availableUpstreams;
 
     return {
-      filteredUpstreams: availableUpstreams,
-      selectedUpstream,
-      reason: `Selected ${selectedUpstream.id} for recent block ${blockNumber} >= ${minAvailableBlock} - type: ${selectedUpstream.type}`,
-      shouldContinue: false
+      filteredUpstreams,
+      reason: `Block-based filter: ${filteredUpstreams.length}/${availableUpstreams.length} non-archive upstreams for recent block ${blockNumber} >= ${minAvailableBlock}`,
+      shouldContinue: true
     };
   }
 }

@@ -37,6 +37,7 @@ export interface LoggingConfig {
   logUpstreamHealth: boolean;
   logRoutingDecisions: boolean;
   debug: boolean;
+  production: boolean;
 }
 
 export interface TimeoutConfig {
@@ -83,6 +84,7 @@ export interface UpstreamHealth {
   isHealthy: boolean;
   failoverUntil: number;
   responseTime: number;
+  methodStats?: Map<string, number>;
 }
 
 export interface LocalNodeStatus {
@@ -115,6 +117,7 @@ export interface RoutingContext {
   blockNumber: number | 'latest' | null;
   nodeStatus: LocalNodeStatus | null;
   availableUpstreams: UpstreamConfig[];
+  allUpstreams: UpstreamConfig[]; // All upstreams including archives for emergency fallback
   upstreamHealth: Map<string, UpstreamHealth>;
   config: ProjectConfig;
   appConfig: AppConfig; // Reference to full app config for global settings

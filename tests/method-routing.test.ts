@@ -110,6 +110,7 @@ async function runTests(): Promise<void> {
         blockNumber: null,
         nodeStatus: null,
         availableUpstreams: mockUpstreams,
+      allUpstreams: mockUpstreams,
         upstreamHealth: mockUpstreamHealth,
         config: {} as any,
         appConfig: {} as any
@@ -198,6 +199,7 @@ async function runTests(): Promise<void> {
     blockNumber: null,
     nodeStatus: null,
     availableUpstreams: mockUpstreams,
+      allUpstreams: mockUpstreams,
     upstreamHealth: unhealthyHealth,
     config: {} as any,
     appConfig: {} as any

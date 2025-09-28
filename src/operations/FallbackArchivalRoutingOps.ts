@@ -4,31 +4,33 @@ export class FallbackArchivalRoutingOps implements RoutingOperation {
   name = 'ArchiveFilter';
 
   async execute(context: RoutingContext): Promise<RoutingResult> {
-    const { availableUpstreams, blockNumber, request, appConfig } = context;
+    const { availableUpstreams, allUpstreams } = context;
 
-    // If we reach this point, it means previous filters didn't work
-    // This is an emergency filter that tries to provide archive nodes as fallback
-
-    const isHistoricalMethod = appConfig.historicalMethods.includes(request.method);
-
-    if (isHistoricalMethod && typeof blockNumber === 'number') {
-      // For historical methods with numbered blocks, strongly prefer archive nodes
-      const archiveUpstreams = availableUpstreams.filter(u => u.type === 'archive');
+    // Emergency fallback: ONLY add archive upstreams if no upstreams are available
+    if (availableUpstreams.length === 0) {
+      const archiveUpstreams = allUpstreams.filter(u => u.type === 'archive');
 
       if (archiveUpstreams.length > 0) {
         return {
           filteredUpstreams: archiveUpstreams,
-          reason: `Emergency archive filter: ${archiveUpstreams.length} archive nodes for historical block ${blockNumber}`,
+          reason: `Emergency archive fallback: added ${archiveUpstreams.length} archive upstreams as last resort`,
           shouldContinue: true
         };
       }
+
+      // No upstreams available at all
+      return {
+        filteredUpstreams: [],
+        reason: 'No upstreams available, including archives',
+        shouldContinue: false
+      };
     }
 
-    // If no archive nodes or not a historical method, pass through all available upstreams
+    // Normal case: if we have upstreams, pass them through without adding expensive archives
     return {
       filteredUpstreams: availableUpstreams,
-      reason: `Emergency fallback: passing through ${availableUpstreams.length} available upstreams`,
-      shouldContinue: availableUpstreams.length > 0
+      reason: `Archive filter: passing through ${availableUpstreams.length} upstreams (no emergency fallback needed)`,
+      shouldContinue: true
     };
   }
 }

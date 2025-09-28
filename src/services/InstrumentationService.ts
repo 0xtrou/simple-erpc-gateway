@@ -62,7 +62,8 @@ export class InstrumentationService {
 
   logOperationResult(requestId: string, operationName: string, result: any, startTime: number): void {
     this.logEvent(requestId, operationName, 'result', {
-      upstream: result.upstream?.id || null,
+      filteredUpstreams: result.filteredUpstreams?.map((u: any) => u.id) || [],
+      selectedUpstream: result.selectedUpstream?.id || null,
       reason: result.reason,
       shouldContinue: result.shouldContinue
     }, startTime);

@@ -24,7 +24,8 @@ export class Logger {
         logRequests: true,
         logUpstreamHealth: true,
         logRoutingDecisions: true,
-        debug: false
+        debug: false,
+        production: false
       });
     }
     return Logger.instance;
@@ -79,13 +80,13 @@ export class Logger {
 
   // Specific logging methods for different concerns
   logRequest(method: string, debugMode: boolean = false): void {
-    if (this.config.logRequests) {
+    if (this.config.logRequests && !this.config.production) {
       this.info(`🔄 Processing ${method} request${debugMode ? ' (DEBUG MODE)' : ''}`);
     }
   }
 
   logRoutingDecision(operationName: string, reason: string, success: boolean): void {
-    if (this.config.logRoutingDecisions) {
+    if (this.config.logRoutingDecisions && !this.config.production) {
       if (success) {
         this.info(`✅ ${operationName}: ${reason}`);
       } else {
@@ -95,19 +96,19 @@ export class Logger {
   }
 
   logRoutingStop(operationName: string, reason: string): void {
-    if (this.config.logRoutingDecisions) {
+    if (this.config.logRoutingDecisions && !this.config.production) {
       this.info(`🔴 ${operationName}: ${reason} - stopping pipeline`);
     }
   }
 
   logRoutingError(operationName: string, error: Error): void {
-    if (this.config.logRoutingDecisions) {
+    if (this.config.logRoutingDecisions && !this.config.production) {
       this.error(`💥 ${operationName}: Error - ${error.message}`);
     }
   }
 
   logUpstreamHealth(upstreamId: string, isHealthy: boolean, errorRate?: number, consecutiveErrors?: number): void {
-    if (this.config.logUpstreamHealth) {
+    if (this.config.logUpstreamHealth && !this.config.production) {
       if (isHealthy) {
         this.info(`Upstream ${upstreamId} marked as healthy${errorRate !== undefined ? `. Error rate: ${errorRate.toFixed(3)}` : ''}`);
       } else {
@@ -117,22 +118,55 @@ export class Logger {
   }
 
   logRequestFailure(upstreamId: string, error: string): void {
-    this.warn(`❌ Request to ${upstreamId} failed - ${error}`);
+    if (!this.config.production) {
+      this.warn(`❌ Request to ${upstreamId} failed - ${error}`);
+    }
   }
 
   logRequestSuccess(operationName: string, reason: string): void {
-    if (this.config.logRoutingDecisions) {
+    if (this.config.logRoutingDecisions && !this.config.production) {
       this.info(`✅ ${operationName}: ${reason}`);
     }
   }
 
   logUpstreamRecovery(upstreamId: string): void {
-    if (this.config.logUpstreamHealth) {
+    if (this.config.logUpstreamHealth && !this.config.production) {
       this.info(`Upstream ${upstreamId} recovered, marking as healthy`);
     }
   }
 
   logNodeStatus(earliestBlock: number, latestBlock: number, catchingUp: boolean): void {
     this.info(`Local node status: earliest=${earliestBlock}, latest=${latestBlock}, catching_up=${catchingUp}`);
+  }
+
+  // Simple production logging - one line per request
+  logProductionRequest(
+    projectId: string,
+    method: string,
+    params: any,
+    duration: number,
+    success: boolean,
+    upstreamUsed?: string,
+    error?: string
+  ): void {
+    const paramsStr = JSON.stringify(params).substring(0, 200);
+    const status = success ? '✅' : '❌';
+    const errorStr = error ? ` error="${error}"` : '';
+    const upstreamStr = upstreamUsed ? ` upstream="${upstreamUsed}"` : '';
+
+    this.info(`${status} [${projectId}] ${method} params=${paramsStr} duration=${duration}ms${upstreamStr}${errorStr}`);
+  }
+
+  // Batch request logging
+  logProductionBatch(
+    projectId: string,
+    batchSize: number,
+    methods: string[],
+    duration: number,
+    successCount: number,
+    failureCount: number
+  ): void {
+    const methodsStr = [...new Set(methods)].join(',');
+    this.info(`📦 [${projectId}] BATCH size=${batchSize} methods=[${methodsStr}] duration=${duration}ms success=${successCount} failures=${failureCount}`);
   }
 }

@@ -216,6 +216,7 @@ async function runPipelineTests(): Promise<void> {
         blockNumber: testCase.blockNumber,
         nodeStatus: mockNodeStatus,
         availableUpstreams: currentUpstreams,
+      allUpstreams: currentUpstreams,
         upstreamHealth: health,
         config: {
           blockHeightBuffer: 100,
