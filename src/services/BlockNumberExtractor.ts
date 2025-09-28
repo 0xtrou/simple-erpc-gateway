@@ -10,6 +10,7 @@ export class BlockNumberExtractor {
     if (!this.appConfig.historicalMethods.includes(method)) return null;
 
     const blockNumberMethods: Record<string, number> = {
+      // Block number as first parameter (index 0)
       'eth_getBlockByNumber': 0,
       'eth_getBlockTransactionCountByNumber': 0,
       'eth_getTransactionByBlockNumberAndIndex': 0,
@@ -17,7 +18,12 @@ export class BlockNumberExtractor {
       'eth_getUncleCountByBlockNumber': 0,
       'debug_traceBlockByNumber': 0,
       'trace_block': 0,
-      'trace_blockByNumber': 0
+      'trace_blockByNumber': 0,
+      // Block number as second parameter (index 1)
+      'eth_getBalance': 1,
+      'eth_getCode': 1,
+      'eth_getStorageAt': 2, // storage key is param 1, block is param 2
+      'eth_call': 1
     };
 
     // Handle methods with block number parameter

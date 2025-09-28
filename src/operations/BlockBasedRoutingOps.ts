@@ -10,7 +10,7 @@ export class BlockBasedRoutingOps implements RoutingOperation {
       return {
         filteredUpstreams: [],
         reason: 'No upstreams available for block-based filtering',
-        shouldContinue: false
+        shouldContinue: true
       };
     }
 
@@ -24,12 +24,12 @@ export class BlockBasedRoutingOps implements RoutingOperation {
         return true;
       });
 
-      // If no upstreams support this block due to EVM limitations, fail early
+      // If no upstreams support this block due to EVM limitations, continue to next operation
       if (evmCompatibleUpstreams.length === 0) {
         return {
           filteredUpstreams: [],
           reason: `No upstreams support block ${blockNumber} (before EVM start blocks)`,
-          shouldContinue: false
+          shouldContinue: true
         };
       }
     }

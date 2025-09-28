@@ -46,7 +46,6 @@ Edit `config.json`:
           "ignoredMethods": ["debug_*", "trace_*"]
         }
       ],
-      "blockHeightBuffer": 1000,
       "errorRateThreshold": 0.15
     }
   ]

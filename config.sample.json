@@ -22,7 +22,6 @@
           "priority": 2
         }
       ],
-      "blockHeightBuffer": 100,
       "errorRateThreshold": 0.25,
       "statusCheckInterval": 30000,
       "responseTimeout": 30000,
@@ -66,7 +65,6 @@
           "priority": 10
         }
       ],
-      "blockHeightBuffer": 1000,
       "errorRateThreshold": 0.15,
       "statusCheckInterval": 60000,
       "responseTimeout": 15000,

@@ -52,7 +52,6 @@ export interface ProjectConfig {
   id: string;
   description?: string;
   upstreams: UpstreamConfig[];
-  blockHeightBuffer: number;
   errorRateThreshold: number;
   statusCheckInterval: number;
   responseTimeout: number;

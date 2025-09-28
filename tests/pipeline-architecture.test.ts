@@ -219,7 +219,6 @@ async function runPipelineTests(): Promise<void> {
       allUpstreams: currentUpstreams,
         upstreamHealth: health,
         config: {
-          blockHeightBuffer: 100,
           errorRateThreshold: 0.1,
           health: {
             errorRateWindowMs: 300000,

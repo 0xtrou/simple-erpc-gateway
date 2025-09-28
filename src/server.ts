@@ -37,9 +37,7 @@ let projectServices: Map<
 > = new Map();
 
 // Create Fastify server
-const server = fastify({
-  logger: false  // We'll handle logging ourselves
-});
+const server = fastify({ logger: true });
 
 // Load configuration
 function loadConfig(): void {
@@ -126,8 +124,7 @@ function initializeServices(): void {
 async function executeProjectRequest(
   projectService: any,
   singleRequest: JsonRpcRequest,
-  originalRequest: any,
-  projectId: string
+  originalRequest: any
 ): Promise<{
   response: any;
   success: boolean;
@@ -286,8 +283,7 @@ function createProjectHandler(projectId: string) {
             const result = await executeProjectRequest(
               projectService,
               singleRequest,
-              request,
-              projectId
+              request
             );
             batchResponses.push(result.response);
             methods.push(singleRequest.method);
@@ -465,7 +461,6 @@ server.get("/metrics", async (request) => {
     localNode: await projectService.nodeStatusService.getStatus(),
     config: {
       errorRateThreshold: projectConfig.errorRateThreshold,
-      blockHeightBuffer: projectConfig.blockHeightBuffer,
       responseTimeout: projectConfig.responseTimeout,
       historicalMethods: config.historicalMethods.length,
     },
@@ -507,7 +502,6 @@ function registerProjectEndpoints(): void {
         localNode: await services.nodeStatusService.getStatus(),
         config: {
           errorRateThreshold: projectConfig.errorRateThreshold,
-          blockHeightBuffer: projectConfig.blockHeightBuffer,
           responseTimeout: projectConfig.responseTimeout,
           historicalMethods: config.historicalMethods.length,
         },
