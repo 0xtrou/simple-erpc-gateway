@@ -14,14 +14,34 @@ export class BlockBasedRoutingOps implements RoutingOperation {
       };
     }
 
+    // Apply EVM start block filtering for any method with a block parameter
+    let evmCompatibleUpstreams = availableUpstreams;
+    if (typeof blockNumber === 'number') {
+      evmCompatibleUpstreams = availableUpstreams.filter(upstream => {
+        if (upstream.evmStartBlock && blockNumber < upstream.evmStartBlock) {
+          return false; // This upstream doesn't support this pre-EVM block
+        }
+        return true;
+      });
+
+      // If no upstreams support this block due to EVM limitations, fail early
+      if (evmCompatibleUpstreams.length === 0) {
+        return {
+          filteredUpstreams: [],
+          reason: `No upstreams support block ${blockNumber} (before EVM start blocks)`,
+          shouldContinue: false
+        };
+      }
+    }
+
     // Determine if this is a historical method that requires special handling
     const isHistoricalMethod = appConfig.historicalMethods.includes(request.method);
 
     // For non-historical methods or when block number is null/latest, prefer non-archive nodes
     if (!isHistoricalMethod || blockNumber === null || blockNumber === 'latest') {
       // Filter to prefer non-archive nodes for cost optimization, but keep archives as fallback
-      const nonArchiveUpstreams = availableUpstreams.filter(u => u.type !== 'archive');
-      const filteredUpstreams = nonArchiveUpstreams.length > 0 ? nonArchiveUpstreams : availableUpstreams;
+      const nonArchiveUpstreams = evmCompatibleUpstreams.filter(u => u.type !== 'archive');
+      const filteredUpstreams = nonArchiveUpstreams.length > 0 ? nonArchiveUpstreams : evmCompatibleUpstreams;
 
       return {
         filteredUpstreams,
@@ -30,46 +50,26 @@ export class BlockBasedRoutingOps implements RoutingOperation {
       };
     }
 
-    // For historical methods with numbered blocks, determine if block is old or recent
-    if (!nodeStatus) {
-      // Without node status, prefer archive nodes for historical methods
-      const archiveUpstreams = availableUpstreams.filter(u => u.type === 'archive');
-      const filteredUpstreams = archiveUpstreams.length > 0 ? archiveUpstreams : availableUpstreams;
-
-      return {
-        filteredUpstreams,
-        reason: `Block-based filter: ${filteredUpstreams.length}/${availableUpstreams.length} upstreams for historical method (no node status)`,
-        shouldContinue: true
-      };
-    }
-
-    const minAvailableBlock = nodeStatus.earliestBlockHeight + context.config.blockHeightBuffer;
-
-    // If block is too old, strongly prefer archive nodes
-    if (blockNumber < minAvailableBlock) {
-      const archiveUpstreams = availableUpstreams.filter(u => u.type === 'archive');
+    // For historical methods, prefer archive nodes for old blocks, non-archive for recent blocks
+    if (typeof blockNumber === 'number' && blockNumber < 169000000) {
+      // Old block - prefer archive nodes
+      const archiveUpstreams = evmCompatibleUpstreams.filter(u => u.type === 'archive');
       if (archiveUpstreams.length > 0) {
         return {
           filteredUpstreams: archiveUpstreams,
-          reason: `Block-based filter: ${archiveUpstreams.length}/${availableUpstreams.length} archive upstreams for old block ${blockNumber} < ${minAvailableBlock}`,
+          reason: `Block-based filter: ${archiveUpstreams.length}/${availableUpstreams.length} archive upstreams for old block ${blockNumber}`,
           shouldContinue: true
         };
       }
-      // Fallback to any available upstream if no archive nodes
-      return {
-        filteredUpstreams: availableUpstreams,
-        reason: `Block-based filter: ${availableUpstreams.length} upstreams for old block ${blockNumber} (no archive nodes available)`,
-        shouldContinue: true
-      };
     }
 
-    // Block is recent enough - prefer non-archive nodes for cost optimization
-    const nonArchiveUpstreams = availableUpstreams.filter(u => u.type !== 'archive');
-    const filteredUpstreams = nonArchiveUpstreams.length > 0 ? nonArchiveUpstreams : availableUpstreams;
+    // Recent block or no archive preference - use compatible upstreams, prefer non-archive for cost
+    const nonArchiveUpstreams = evmCompatibleUpstreams.filter(u => u.type !== 'archive');
+    const filteredUpstreams = nonArchiveUpstreams.length > 0 ? nonArchiveUpstreams : evmCompatibleUpstreams;
 
     return {
       filteredUpstreams,
-      reason: `Block-based filter: ${filteredUpstreams.length}/${availableUpstreams.length} non-archive upstreams for recent block ${blockNumber} >= ${minAvailableBlock}`,
+      reason: `Block-based filter: ${filteredUpstreams.length}/${availableUpstreams.length} upstreams for block ${blockNumber}`,
       shouldContinue: true
     };
   }

@@ -26,23 +26,16 @@ export class NodeStatusService {
       const statusUrl = localUpstream?.statusUrl;
 
       if (!statusUrl) {
-        // No status URL configured - assume node is a recent full node (not archive)
-        // Most full nodes only keep recent blocks based on configuration
-        const estimatedCurrentBlock = this.appConfig.blockchain.estimatedCurrentBlock;
-        const secondsInMonth = 30 * 24 * 60 * 60; // 30 days per month
-        const blocksInRetentionPeriod = Math.floor(
-          (this.appConfig.blockchain.fullNodeRetentionMonths * secondsInMonth) /
-          this.appConfig.blockchain.blockTimeSeconds
-        );
-
+        // No status URL configured - assume node is healthy and synced
+        // Block availability is determined by per-upstream evmStartBlock config
         this.localNodeStatus = {
-          earliestBlockHeight: estimatedCurrentBlock - blocksInRetentionPeriod,
-          latestBlockHeight: estimatedCurrentBlock,
+          earliestBlockHeight: 0, // Not used - evmStartBlock determines availability
+          latestBlockHeight: 999999999, // Assume node is synced
           catchingUp: false,
           lastUpdated: now
         };
         this.lastStatusCheck = now;
-        console.log(`No status URL configured - assuming recent full node with blocks ${this.localNodeStatus.earliestBlockHeight} to ${this.localNodeStatus.latestBlockHeight} (${this.appConfig.blockchain.fullNodeRetentionMonths} month retention)`);
+        console.log(`No status URL configured - assuming node is healthy and synced`);
         return this.localNodeStatus;
       }
 
@@ -100,23 +93,16 @@ export class NodeStatusService {
     } catch (error) {
       console.error('Failed to check local node status:', (error as Error).message);
 
-      // Fallback to default status if fetching fails
-      // Assume recent full node (not archive) when status fetch fails
-      const estimatedCurrentBlock = this.appConfig.blockchain.estimatedCurrentBlock;
-      const secondsInMonth = 30 * 24 * 60 * 60; // 30 days per month
-      const blocksInRetentionPeriod = Math.floor(
-        (this.appConfig.blockchain.fullNodeRetentionMonths * secondsInMonth) /
-        this.appConfig.blockchain.blockTimeSeconds
-      );
-
+      // Fallback when status fetch fails - assume node is healthy and synced
+      // Block availability is determined by per-upstream evmStartBlock config
       this.localNodeStatus = {
-        earliestBlockHeight: estimatedCurrentBlock - blocksInRetentionPeriod,
-        latestBlockHeight: estimatedCurrentBlock,
+        earliestBlockHeight: 0, // Not used - evmStartBlock determines availability
+        latestBlockHeight: 999999999, // Assume node is synced
         catchingUp: false,
         lastUpdated: now
       };
       this.lastStatusCheck = now;
-      console.log(`Using fallback node status due to fetch error - assuming blocks ${this.localNodeStatus.earliestBlockHeight} to ${this.localNodeStatus.latestBlockHeight} (${this.appConfig.blockchain.fullNodeRetentionMonths} month retention)`);
+      console.log(`Node status fetch failed - assuming node is healthy and synced`);
       return this.localNodeStatus;
     }
   }

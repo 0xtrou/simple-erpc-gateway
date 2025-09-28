@@ -5,6 +5,7 @@ export interface UpstreamConfig {
   type: 'full' | 'archive';
   priority: number;
   ignoredMethods?: string[];
+  evmStartBlock?: number;
 }
 
 export interface ServerConfig {
@@ -46,11 +47,6 @@ export interface TimeoutConfig {
   defaultNodeStatusTimeoutMs: number;
 }
 
-export interface BlockchainConfig {
-  estimatedCurrentBlock: number;
-  blockTimeSeconds: number;
-  fullNodeRetentionMonths: number;
-}
 
 export interface ProjectConfig {
   id: string;
@@ -66,7 +62,6 @@ export interface ProjectConfig {
 export interface AppConfig {
   server: ServerConfig;
   timeouts: TimeoutConfig;
-  blockchain: BlockchainConfig;
   historicalMethods: string[];
   projects: ProjectConfig[];
   defaultProject: string;

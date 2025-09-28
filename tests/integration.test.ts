@@ -91,6 +91,19 @@ async function runIntegrationTests(): Promise<void> {
       expectedStatus: 200
     },
     {
+      name: 'Pre-EVM Block Request',
+      description: 'Should handle pre-EVM block requests without routing to incompatible upstreams',
+      url: baseUrl,
+      method: 'POST',
+      body: {
+        jsonrpc: '2.0',
+        method: 'eth_getBalance',
+        params: ['0x1234567890123456789012345678901234567890', '0x8329E27'], // Block 137535015 (pre-EVM)
+        id: 5
+      },
+      expectedStatus: 200
+    },
+    {
       name: 'Invalid Method',
       description: 'Should return error for invalid JSON-RPC method',
       url: baseUrl,
@@ -99,7 +112,7 @@ async function runIntegrationTests(): Promise<void> {
         jsonrpc: '2.0',
         method: 'invalid_method',
         params: [],
-        id: 5
+        id: 6
       },
       expectedStatus: 200
     }
