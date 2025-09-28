@@ -31,7 +31,7 @@ export class DefaultRoutingStrategy implements RoutingStrategy {
 
     const blockNumber = this.blockExtractor.extract(request.method, request.params);
     const nodeStatus = await this.nodeStatusService.getStatus();
-    const availableUpstreams = this.upstreamService.getAvailableUpstreams();
+    let availableUpstreams = this.upstreamService.getAvailableUpstreams();
     const upstreamHealth = this.upstreamService.getHealthMap();
 
     const context: RoutingContext = {
@@ -44,56 +44,46 @@ export class DefaultRoutingStrategy implements RoutingStrategy {
       appConfig: this.appConfig,
     };
 
-    // Execute operations in pipeline until one returns an upstream
+    let selectedUpstream: any = null;
+
+    // Execute operations in pipeline as filters (map-reduce pattern)
     for (const operation of this.operations) {
       const operationStartTime = this.instrumentation.logOperationStart(requestId, operation.name, context);
 
       try {
+        // Update context with current filtered upstreams
+        context.availableUpstreams = availableUpstreams;
+
         const result = await operation.execute(context);
         this.instrumentation.logOperationResult(requestId, operation.name, result, operationStartTime);
 
-        if (result.upstream) {
-          // Only log routing decisions in debug mode
-          if (isDebugEnabled) {
-            console.log(`✅ ${operation.name}: ${result.reason}`);
-          }
-          context.selectedUpstream = result.upstream;
-
-          // Execute request and return response
-          const response = await this.upstreamService.proxyRequest(result.upstream, request);
-          this.instrumentation.logRequestProxy(requestId, result.upstream.id, response.success, response.error);
-
-          if (response.success) {
-            const debugInfo = this.instrumentation.finishRequest(requestId, context);
-
-            if (isDebugEnabled && debugInfo) {
-              const debugResponse: DebugResponse = {
-                ...response.data,
-                debug: debugInfo
-              };
-              return reply.send(debugResponse);
-            }
-
-            return reply.send(response.data);
-          } else {
-            // Continue to next operation if this upstream failed
-            if (isDebugEnabled) {
-              console.warn(`❌ ${operation.name}: Request failed - ${response.error}`);
-            }
-            continue;
-          }
+        // Log operation result in debug mode
+        if (isDebugEnabled) {
+          console.log(`🔄 ${operation.name}: ${result.reason}`);
         }
 
-        if (!result.shouldContinue) {
+        // If operation selected an upstream, we're done with filtering
+        if (result.selectedUpstream) {
+          selectedUpstream = result.selectedUpstream;
+          context.selectedUpstream = selectedUpstream;
+
           if (isDebugEnabled) {
-            console.log(`🔴 ${operation.name}: ${result.reason} - stopping pipeline`);
+            console.log(`✅ ${operation.name}: Selected ${selectedUpstream.id}`);
           }
           break;
         }
 
-        if (isDebugEnabled) {
-          console.log(`⏭️  ${operation.name}: ${result.reason} - continuing pipeline`);
+        // Update available upstreams for next operation
+        availableUpstreams = result.filteredUpstreams;
+
+        // If no upstreams left or operation says stop, break
+        if (!result.shouldContinue || availableUpstreams.length === 0) {
+          if (isDebugEnabled) {
+            console.log(`🔴 ${operation.name}: Pipeline stopped - ${availableUpstreams.length} upstreams remaining`);
+          }
+          break;
         }
+
       } catch (error) {
         console.error(`💥 ${operation.name}: Error -`, error);
         this.instrumentation.logOperationError(requestId, operation.name, error as Error, operationStartTime);
@@ -101,11 +91,46 @@ export class DefaultRoutingStrategy implements RoutingStrategy {
       }
     }
 
-    // If we reach here, all operations failed
+    // If no upstream was selected, try first available as last resort
+    if (!selectedUpstream && availableUpstreams.length > 0) {
+      selectedUpstream = availableUpstreams[0];
+      context.selectedUpstream = selectedUpstream;
+
+      if (isDebugEnabled) {
+        console.log(`🆘 Last resort: Using ${selectedUpstream.id}`);
+      }
+    }
+
+    // If we have a selected upstream, execute the request
+    if (selectedUpstream) {
+      const response = await this.upstreamService.proxyRequest(selectedUpstream, request);
+      this.instrumentation.logRequestProxy(requestId, selectedUpstream.id, response.success, response.error);
+
+      if (response.success) {
+        const debugInfo = this.instrumentation.finishRequest(requestId, context);
+
+        if (isDebugEnabled && debugInfo) {
+          const debugResponse: DebugResponse = {
+            ...response.data,
+            debug: debugInfo
+          };
+          return reply.send(debugResponse);
+        }
+
+        return reply.send(response.data);
+      } else {
+        // Request failed, return error
+        if (isDebugEnabled) {
+          console.warn(`❌ Request to ${selectedUpstream.id} failed: ${response.error}`);
+        }
+      }
+    }
+
+    // If we reach here, no upstreams available or all failed
     const debugInfo = this.instrumentation.finishRequest(requestId, context);
     const errorResponse = {
       jsonrpc: '2.0',
-      error: { code: -32603, message: 'All upstreams failed' },
+      error: { code: -32603, message: 'No upstreams available or all upstreams failed' },
       id: request.id
     };
 

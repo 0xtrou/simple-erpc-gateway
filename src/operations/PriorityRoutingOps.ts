@@ -1,40 +1,26 @@
 import { RoutingOperation, RoutingContext, RoutingResult } from '../types';
 
 export class PriorityRoutingOps implements RoutingOperation {
-  name = 'PriorityRouting';
+  name = 'HealthFiltering';
 
   async execute(context: RoutingContext): Promise<RoutingResult> {
-    const { request, availableUpstreams, upstreamHealth, appConfig } = context;
+    const { availableUpstreams, upstreamHealth } = context;
 
-    // Only handle non-block methods - let BlockBasedRouting handle methods with block parameters
-    const isHistoricalMethod = appConfig.historicalMethods.includes(request.method);
-    if (isHistoricalMethod) {
-      return {
-        upstream: null,
-        reason: `Skipping priority routing for block method ${request.method} - delegating to BlockBasedRouting`,
-        shouldContinue: true
-      };
-    }
+    // Filter healthy upstreams and sort by priority
+    const healthyUpstreams = availableUpstreams
+      .filter(upstream => {
+        const health = upstreamHealth.get(upstream.id);
+        return health?.isHealthy === true;
+      })
+      .sort((a, b) => a.priority - b.priority); // Sort by priority (lower number = higher priority)
 
-    // Try upstreams in priority order, skip archive nodes in first pass
-    for (const upstream of availableUpstreams) {
-      // Skip expensive archive nodes in first pass
-      if (upstream.type === 'archive') continue;
-
-      const health = upstreamHealth.get(upstream.id);
-      if (health?.isHealthy) {
-        return {
-          upstream,
-          reason: `Selected ${upstream.id} by priority (${upstream.priority}) for non-block method - type: ${upstream.type}`,
-          shouldContinue: false
-        };
-      }
-    }
+    const healthyCount = healthyUpstreams.length;
+    const totalCount = availableUpstreams.length;
 
     return {
-      upstream: null,
-      reason: 'No healthy cheap upstreams available by priority',
-      shouldContinue: true
+      filteredUpstreams: healthyUpstreams,
+      reason: `Filtered ${healthyCount}/${totalCount} healthy upstreams, sorted by priority`,
+      shouldContinue: healthyCount > 0
     };
   }
 }

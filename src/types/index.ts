@@ -4,6 +4,7 @@ export interface UpstreamConfig {
   statusUrl?: string;
   type: 'full' | 'archive';
   priority: number;
+  ignoredMethods?: string[];
 }
 
 export interface ServerConfig {
@@ -122,7 +123,8 @@ export interface RoutingContext {
 }
 
 export interface RoutingResult {
-  upstream: UpstreamConfig | null;
+  filteredUpstreams: UpstreamConfig[];
+  selectedUpstream?: UpstreamConfig;
   reason: string;
   shouldContinue: boolean;
 }

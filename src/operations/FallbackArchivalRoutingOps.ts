@@ -1,33 +1,34 @@
 import { RoutingOperation, RoutingContext, RoutingResult } from '../types';
 
 export class FallbackArchivalRoutingOps implements RoutingOperation {
-  name = 'FallbackArchivalRouting';
+  name = 'ArchiveFilter';
 
   async execute(context: RoutingContext): Promise<RoutingResult> {
-    const { availableUpstreams, upstreamHealth, blockNumber } = context;
+    const { availableUpstreams, blockNumber, request, appConfig } = context;
 
-    // Try archive nodes for historical blocks or as fallback
-    for (const upstream of availableUpstreams) {
-      if (upstream.type !== 'archive') continue;
+    // If we reach this point, it means previous filters didn't work
+    // This is an emergency filter that tries to provide archive nodes as fallback
 
-      const health = upstreamHealth.get(upstream.id);
-      if (health?.isHealthy) {
-        const reason = blockNumber !== null && blockNumber !== 'latest'
-          ? `Using archive node ${upstream.id} for historical block ${blockNumber}`
-          : `Fallback to archive node ${upstream.id}`;
+    const isHistoricalMethod = appConfig.historicalMethods.includes(request.method);
 
+    if (isHistoricalMethod && typeof blockNumber === 'number') {
+      // For historical methods with numbered blocks, strongly prefer archive nodes
+      const archiveUpstreams = availableUpstreams.filter(u => u.type === 'archive');
+
+      if (archiveUpstreams.length > 0) {
         return {
-          upstream,
-          reason,
-          shouldContinue: false
+          filteredUpstreams: archiveUpstreams,
+          reason: `Emergency archive filter: ${archiveUpstreams.length} archive nodes for historical block ${blockNumber}`,
+          shouldContinue: true
         };
       }
     }
 
+    // If no archive nodes or not a historical method, pass through all available upstreams
     return {
-      upstream: null,
-      reason: 'No healthy archive nodes available',
-      shouldContinue: true
+      filteredUpstreams: availableUpstreams,
+      reason: `Emergency fallback: passing through ${availableUpstreams.length} available upstreams`,
+      shouldContinue: availableUpstreams.length > 0
     };
   }
 }

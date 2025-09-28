@@ -12,6 +12,7 @@ import { NodeStatusService } from './services/NodeStatusService';
 import { validateJsonRpcRequestOrBatch, createJsonRpcError, JSON_RPC_ERRORS } from './validation';
 
 // Import routing operations
+import { MethodRoutingOps } from './operations/MethodRoutingOps';
 import { PriorityRoutingOps } from './operations/PriorityRoutingOps';
 import { BlockBasedRoutingOps } from './operations/BlockBasedRoutingOps';
 import { FallbackArchivalRoutingOps } from './operations/FallbackArchivalRoutingOps';
@@ -69,10 +70,11 @@ function initializeServices(): void {
 
     // Register pipeline operations in order
     const operations = [
-      new PriorityRoutingOps(),
-      new BlockBasedRoutingOps(),
-      new FallbackArchivalRoutingOps(),
-      new ErrorRatesOps()
+      new ErrorRatesOps(),           // 1. Recovery filter - try to recover failed upstreams first
+      new MethodRoutingOps(),        // 2. Method filter - remove upstreams that don't support the method
+      new PriorityRoutingOps(),      // 3. Health filter - remove unhealthy upstreams, sort by priority
+      new FallbackArchivalRoutingOps(), // 4. Archive emergency filter - prefer archives for historical methods
+      new BlockBasedRoutingOps()     // 5. Final selector - intelligent selection based on block requirements
     ];
 
     strategy.registerPipe(operations);

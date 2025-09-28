@@ -3,6 +3,10 @@
 import { runIntegrationTests } from './integration.test';
 import { runInstrumentationTests } from './instrumentation.test';
 import { runDebugTests } from './debug.test';
+import { runTests as runMethodRoutingTests } from './method-routing.test';
+import { runIntegrationTests as runMethodRoutingIntegrationTests } from './method-routing-integration.test';
+import { runPipelineTests } from './pipeline-architecture.test';
+import { runRecoveryTests } from './recovery-priority.test';
 
 async function runAllTests(): Promise<void> {
   console.log('🚀 Running All Test Suites...\n');
@@ -29,6 +33,50 @@ async function runAllTests(): Promise<void> {
     passedSuites++;
   } catch (error) {
     console.error('❌ Integration tests failed:', (error as Error).message);
+  }
+  totalSuites++;
+
+  try {
+    console.log('\n════════════════════════════════════════');
+    console.log('🎯 METHOD ROUTING UNIT TESTS');
+    console.log('════════════════════════════════════════');
+    await runMethodRoutingTests();
+    passedSuites++;
+  } catch (error) {
+    console.error('❌ Method routing tests failed:', (error as Error).message);
+  }
+  totalSuites++;
+
+  try {
+    console.log('\n════════════════════════════════════════');
+    console.log('🎯 METHOD ROUTING INTEGRATION TESTS');
+    console.log('════════════════════════════════════════');
+    await runMethodRoutingIntegrationTests();
+    passedSuites++;
+  } catch (error) {
+    console.error('❌ Method routing integration tests failed:', (error as Error).message);
+  }
+  totalSuites++;
+
+  try {
+    console.log('\n════════════════════════════════════════');
+    console.log('🏗️  PIPELINE ARCHITECTURE TESTS');
+    console.log('════════════════════════════════════════');
+    await runPipelineTests();
+    passedSuites++;
+  } catch (error) {
+    console.error('❌ Pipeline architecture tests failed:', (error as Error).message);
+  }
+  totalSuites++;
+
+  try {
+    console.log('\n════════════════════════════════════════');
+    console.log('🔄 RECOVERY PRIORITY TESTS');
+    console.log('════════════════════════════════════════');
+    await runRecoveryTests();
+    passedSuites++;
+  } catch (error) {
+    console.error('❌ Recovery priority tests failed:', (error as Error).message);
   }
   totalSuites++;
 
