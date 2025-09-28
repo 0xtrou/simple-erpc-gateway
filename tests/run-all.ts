@@ -7,6 +7,10 @@ import { runTests as runMethodRoutingTests } from './method-routing.test';
 import { runIntegrationTests as runMethodRoutingIntegrationTests } from './method-routing-integration.test';
 import { runPipelineTests } from './pipeline-architecture.test';
 import { runRecoveryTests } from './recovery-priority.test';
+import { runOperationSequenceTests } from './operation-sequence.test';
+import { testDebugInstrumentation } from './debug-instrumentation.test';
+import { runBatchRequestTests } from './batch.test';
+import { runNodeTimeoutTests } from './node-timeout.test';
 
 async function runAllTests(): Promise<void> {
   console.log('🚀 Running All Test Suites...\n');
@@ -88,6 +92,50 @@ async function runAllTests(): Promise<void> {
     passedSuites++;
   } catch (error) {
     console.error('❌ Debug tests failed:', (error as Error).message);
+  }
+  totalSuites++;
+
+  try {
+    console.log('\n════════════════════════════════════════');
+    console.log('🔬 OPERATION SEQUENCE TESTS');
+    console.log('════════════════════════════════════════');
+    await runOperationSequenceTests();
+    passedSuites++;
+  } catch (error) {
+    console.error('❌ Operation sequence tests failed:', (error as Error).message);
+  }
+  totalSuites++;
+
+  try {
+    console.log('\n════════════════════════════════════════');
+    console.log('🛠️  DEBUG INSTRUMENTATION TESTS');
+    console.log('════════════════════════════════════════');
+    await testDebugInstrumentation();
+    passedSuites++;
+  } catch (error) {
+    console.error('❌ Debug instrumentation tests failed:', (error as Error).message);
+  }
+  totalSuites++;
+
+  try {
+    console.log('\n════════════════════════════════════════');
+    console.log('📦 BATCH REQUEST TESTS');
+    console.log('════════════════════════════════════════');
+    await runBatchRequestTests();
+    passedSuites++;
+  } catch (error) {
+    console.error('❌ Batch request tests failed:', (error as Error).message);
+  }
+  totalSuites++;
+
+  try {
+    console.log('\n════════════════════════════════════════');
+    console.log('⏰ NODE TIMEOUT TESTS');
+    console.log('════════════════════════════════════════');
+    await runNodeTimeoutTests();
+    passedSuites++;
+  } catch (error) {
+    console.error('❌ Node timeout tests failed:', (error as Error).message);
   }
   totalSuites++;
 
